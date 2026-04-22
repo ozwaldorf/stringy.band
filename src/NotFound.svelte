@@ -1,14 +1,16 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	$effect(() => {
+		const previous = document.title;
+		document.title = '404 - Stringy and the Beans';
+		return () => {
+			document.title = previous;
+		};
+	});
 </script>
 
-<svelte:head>
-	<title>{page.status} - Stringy and the Beans</title>
-</svelte:head>
-
 <main>
-	<h1>{page.status}</h1>
-	<p>{page.error?.message ?? 'Page not found'}</p>
+	<h1>404</h1>
+	<p>Page not found</p>
 	<a href="/">Back home</a>
 </main>
 

@@ -5,10 +5,6 @@
 	import IconFacebook from '~icons/carbon/logo-facebook';
 </script>
 
-<svelte:head>
-	<title>Stringy and the Beans - Bluegrass Quartet</title>
-</svelte:head>
-
 <main>
 	<h1>Coming soon</h1>
 	<img src="/logo.png" alt="Stringy and the Beans" />
