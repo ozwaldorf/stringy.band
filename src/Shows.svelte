@@ -113,7 +113,7 @@
 							<span class="venue">{show.venue}</span>
 						{/if}
 						{#if cityState(show.address)}
-							<span class="city-state">{cityState(show.address)}</span>
+							<span class="city-state"><IconLocation />{cityState(show.address)}</span>
 						{/if}
 					</div>
 				</li>
@@ -212,11 +212,13 @@
 
 	a.address {
 		align-self: flex-start;
+		color: var(--gb-aqua);
 		text-decoration: underline;
 		text-underline-offset: 2px;
 	}
 
-	a.address :global(svg) {
+	a.address :global(svg),
+	.city-state :global(svg) {
 		vertical-align: -0.25em;
 		margin-right: 0.25rem;
 	}
