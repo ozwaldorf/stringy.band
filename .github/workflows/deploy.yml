@@ -3,10 +3,13 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    # 10:00 UTC daily = 06:00 EDT / 05:00 EST (shifts with DST)
+    - cron: '0 10 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -34,3 +37,34 @@ jobs:
           path: build
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Keepalive
+        if: github.event_name == 'schedule'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          threshold=$((59 * 24 * 60 * 60))
+          now=$(date -u +%s)
+          last=$(git log -1 --format=%ct)
+          age=$((now - last))
+
+          if [ "$age" -lt "$threshold" ]; then
+            echo "Last commit $((age / 86400))d old, under threshold. Nothing to do."
+            exit 0
+          fi
+
+          subject=$(git log -1 --format=%s)
+          if [[ "$subject" == chore:\ keepalive* ]]; then
+            echo "Amending existing keepalive commit ($((age / 86400))d old)."
+            GIT_COMMITTER_DATE="$(date -u -Iseconds)" \
+              git commit --amend --no-edit --allow-empty --date="$(date -u -Iseconds)"
+            git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          else
+            echo "Creating new keepalive commit."
+            git commit --allow-empty -m "chore: keepalive $(date -u +%Y-%m-%d)"
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
