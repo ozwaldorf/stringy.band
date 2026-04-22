@@ -38,16 +38,13 @@
 		return `${weekdayFmt.format(d)}, ${monthFmt.format(d)} ${ordinal(d.getDate())}, ${d.getFullYear()}`;
 	}
 
-	function mapLink(location: string): string {
-		return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+	function formatDateShort(d: Date): string {
+		return `${weekdayFmt.format(d)}, ${monthFmt.format(d)} ${ordinal(d.getDate())}`;
 	}
 
-	function cityState(address?: string): string | undefined {
-		if (!address) return;
-		const parts = address.split(',').map((s) => s.trim());
-		if (parts.length < 3) return;
-		const middle = parts.slice(1, -1).join(', ');
-		return middle.replace(/\s+\d{5}(?:-\d{4})?$/, '');
+
+	function mapLink(location: string): string {
+		return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 	}
 
 	function lettersOnly(s: string): string {
@@ -57,6 +54,12 @@
 	function venueInSummary(summary: string, venue?: string): boolean {
 		if (!venue) return false;
 		return lettersOnly(summary).includes(lettersOnly(venue));
+	}
+
+	function isFlipped(uid: string): boolean {
+		let h = 0;
+		for (let i = 0; i < uid.length; i++) h = (h + uid.charCodeAt(i)) & 0xffff;
+		return (h & 1) === 1;
 	}
 </script>
 
@@ -69,9 +72,10 @@
 	{:else}
 		<ul>
 			{#each upcoming as show (show.uid)}
-				<li>
+				<li class="upcoming-row" class:flipped={isFlipped(show.uid)}>
 					<div class="when">
-						<span class="date">{formatDate(show.start)}</span>
+						<span class="date date-full">{formatDate(show.start)}</span>
+						<span class="date date-short">{formatDateShort(show.start)}</span>
 						<span class="time">{timeFmt.format(show.start)}</span>
 					</div>
 					<div class="details">
@@ -79,13 +83,13 @@
 						{#if show.venue && !venueInSummary(show.summary, show.venue)}
 							<span class="venue">{show.venue}</span>
 						{/if}
-						{#if show.address}
+						{#if show.simpleAddress}
 							<a
 								class="address"
-								href={mapLink(show.location ?? show.address)}
+								href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
 								target="_blank"
 								rel="noopener"
-							><IconLocation />{show.address}</a>
+							><IconLocation />{show.simpleAddress}</a>
 						{/if}
 						{#if show.url}
 							<a class="details-link" href={show.url} target="_blank" rel="noopener">
@@ -104,7 +108,8 @@
 			{#each past as show (show.uid)}
 				<li>
 					<div class="when">
-						<span class="date">{formatDate(show.start)}</span>
+						<span class="date date-full">{formatDate(show.start)}</span>
+						<span class="date date-short">{formatDateShort(show.start)}</span>
 						<span class="time">{timeFmt.format(show.start)}</span>
 					</div>
 					<div class="details">
@@ -112,8 +117,8 @@
 						{#if show.venue && !venueInSummary(show.summary, show.venue)}
 							<span class="venue">{show.venue}</span>
 						{/if}
-						{#if cityState(show.address)}
-							<span class="city-state"><IconLocation />{cityState(show.address)}</span>
+						{#if show.cityState}
+							<span class="city-state"><IconLocation />{show.cityState}</span>
 						{/if}
 					</div>
 				</li>
@@ -174,7 +179,7 @@
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 0.15rem;
-		padding-right: 1rem;
+		padding-right: 2.5rem;
 		font-variant-numeric: tabular-nums;
 		color: var(--color-text-muted);
 		font-size: 0.9rem;
@@ -186,13 +191,48 @@
 		color: var(--color-text);
 	}
 
+	.date-short {
+		display: none;
+	}
+
 	.details {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
 		min-width: 0;
-		padding-left: 1rem;
+		padding-left: 2.5rem;
 		border-left: 1px solid var(--color-border);
+	}
+
+	.upcoming-row .details {
+		border-left: none;
+	}
+
+	.upcoming-row {
+		--stalk: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 80' fill='none' stroke='%2379740e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 0 C 14 10, 9 18, 12 28 C 15 38, 9 48, 12 58 C 15 68, 10 76, 12 80' /%3E%3Cg%3E%3Cpath d='M12 8 Q 15 10 17 12' stroke-width='1'/%3E%3Cpath d='M17 12 Q 23 14 22 22 Q 17 20 15 13 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 12 Q 20 16 22 22' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 32 Q 9 34 7 36' stroke-width='1'/%3E%3Cpath d='M7 36 Q 1 38 2 46 Q 7 44 9 37 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M7 36 Q 4 40 2 46' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 54 Q 15 56 17 58' stroke-width='1'/%3E%3Cpath d='M17 58 Q 23 60 22 68 Q 17 66 15 59 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 58 Q 20 62 22 68' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3C/svg%3E");
+	}
+
+	.upcoming-row .details::before {
+		content: '';
+		position: absolute;
+		left: -1rem;
+		top: 0;
+		bottom: -1rem;
+		width: 2rem;
+		background-image: var(--stalk);
+		background-repeat: repeat-y;
+		background-size: 100% auto;
+		background-position: left top;
+		pointer-events: none;
+	}
+
+	.upcoming-row:last-child .details::before {
+		bottom: 0;
+	}
+
+	.upcoming-row.flipped .details::before {
+		transform: scaleX(-1);
 	}
 
 .summary {
@@ -244,19 +284,35 @@
 		font-weight: 500;
 	}
 
-	@media (max-width: 32rem) {
-		li {
-			grid-template-columns: 1fr;
-			row-gap: 0.35rem;
-		}
-
-		.when {
+	@media (max-width: 600px) {
+		section {
 			align-items: flex-start;
 		}
 
+		section > h1,
+		section > h2 {
+			align-self: center;
+		}
+
+		li {
+			grid-template-columns: 7rem 1fr;
+		}
+
+		.date-full {
+			display: none;
+		}
+
+		.date-short {
+			display: inline;
+		}
+
+		.when {
+			padding-right: 1.5rem;
+			font-size: 0.85rem;
+		}
+
 		.details {
-			padding-left: 0;
-			border-left: none;
+			padding-left: 1.75rem;
 		}
 	}
 </style>

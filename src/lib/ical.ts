@@ -5,7 +5,9 @@ export type Show = {
 	summary: string;
 	location?: string;
 	venue?: string;
-	address?: string;
+	fullAddress?: string;
+	simpleAddress?: string;
+	cityState?: string;
 	description?: string;
 	url?: string;
 };
@@ -43,7 +45,7 @@ export function parseIcal(source: string): Show[] {
 function toShow(fields: Record<string, string>): Show {
 	const description = fields.DESCRIPTION ? unescape(fields.DESCRIPTION) : undefined;
 	const location = fields.LOCATION ? unescape(fields.LOCATION) : undefined;
-	const { venue, address } = splitLocation(location);
+	const { venue, fullAddress, simpleAddress, cityState } = splitLocation(location);
 
 	return {
 		uid: fields.UID ?? crypto.randomUUID(),
@@ -52,7 +54,9 @@ function toShow(fields: Record<string, string>): Show {
 		summary: unescape(fields.SUMMARY ?? ''),
 		location,
 		venue,
-		address,
+		fullAddress,
+		simpleAddress,
+		cityState,
 		description,
 		url: extractUrl(description)
 	};
@@ -72,11 +76,29 @@ function parseDate(value: string): Date {
 	return new Date(+y, +mo - 1, +d, +hh, +mm, +ss);
 }
 
-function splitLocation(location?: string): { venue?: string; address?: string } {
+function splitLocation(location?: string): {
+	venue?: string;
+	fullAddress?: string;
+	simpleAddress?: string;
+	cityState?: string;
+} {
 	if (!location) return {};
 	const parts = location.split(',').map((s) => s.trim());
 	if (parts.length === 1) return { venue: parts[0] };
-	return { venue: parts[0], address: parts.slice(1).join(', ') };
+
+	const addressParts = parts.slice(1);
+	const last = addressParts[addressParts.length - 1];
+	if (addressParts.length > 1 && /^[A-Za-z][A-Za-z. ]{1,24}$/.test(last)) {
+		addressParts.pop();
+	}
+	const stripped = addressParts.map((p) => p.replace(/\s+\d{5}(?:-\d{4})?$/, ''));
+
+	return {
+		venue: parts[0],
+		fullAddress: addressParts.join(', '),
+		simpleAddress: stripped.join(', '),
+		cityState: stripped.length >= 2 ? stripped.slice(1).join(', ') : undefined
+	};
 }
 
 function extractUrl(description?: string): string | undefined {

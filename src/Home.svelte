@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconEmail from '~icons/carbon/email';
 	import IconYoutube from '~icons/carbon/logo-youtube';
 	import IconInstagram from '~icons/carbon/logo-instagram';
 	import IconTiktok from '~icons/simple-icons/tiktok';
@@ -7,6 +8,7 @@
 </script>
 
 <main>
+	<div class="content">
 	<img src="/logo.png" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
@@ -59,20 +61,39 @@
 
 	<section class="contact" aria-label="Booking contact">
 		<h1>Bookings</h1>
-		<a href="mailto:beans@stringy.band">beans@stringy.band</a>
+		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
 	</section>
+	</div>
+
+	<footer>
+		<small>© {new Date().getFullYear()} Stringy and the Beans</small>
+	</footer>
 </main>
 
 <style>
 	main {
 		min-height: 100dvh;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		padding: 1rem 2rem;
+		text-align: center;
+	}
+
+	.content {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 1.5rem;
-		padding: 2rem;
-		text-align: center;
+	}
+
+	footer {
+		margin-top: 2rem;
+		padding-top: 1rem;
+		color: var(--color-text-faint);
+		font-size: 0.8rem;
 	}
 
 	img {
@@ -109,6 +130,11 @@
 	.contact a {
 		font-size: 1.1rem;
 		font-weight: 400;
+	}
+
+	.contact a :global(svg) {
+		vertical-align: -0.2em;
+		margin-right: 0.4rem;
 	}
 
 	.socials-section {
