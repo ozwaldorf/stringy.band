@@ -9,6 +9,10 @@
 <main>
 	<img src="/logo.png" alt="Stringy and the Beans" />
 
+	<section class="about" aria-label="About">
+		<p>Upstate NY bluegrass quartet</p>
+	</section>
+
 	<section class="socials-section" aria-label="Socials">
 		<h1>Follow us</h1>
 		<nav class="socials">
@@ -71,6 +75,17 @@
 	img {
 		width: min(420px, 70vw);
 		height: auto;
+	}
+
+	.about {
+		max-width: 28rem;
+	}
+
+	.about p {
+		margin: 0;
+		color: var(--color-text-muted);
+		font-size: 1.05rem;
+		line-height: 1.5;
 	}
 
 	.contact {
