@@ -103,6 +103,7 @@
 
 	.about {
 		max-width: 28rem;
+		margin-top: 1rem;
 	}
 
 	.about p {

@@ -10,7 +10,10 @@
 	}));
 	const now = Date.now();
 	const upcoming = all.filter((s) => s.end.getTime() >= now);
-	const past = all.filter((s) => s.end.getTime() < now).reverse();
+	const past = all
+		.filter((s) => s.end.getTime() < now)
+		.reverse()
+		.slice(0, 5);
 
 	const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 	const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short' });
@@ -124,6 +127,7 @@
 				</li>
 			{/each}
 		</ul>
+		<h3 class="past-more">...</h3>
 	{/if}
 </section>
 
@@ -209,6 +213,10 @@
 		border-left: none;
 	}
 
+	.past .details {
+		border-left-width: 2px;
+	}
+
 	.upcoming-row {
 		--stalk: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 80' fill='none' stroke='%2379740e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 0 C 14 10, 9 18, 12 28 C 15 38, 9 48, 12 58 C 15 68, 10 76, 12 80' /%3E%3Cg%3E%3Cpath d='M12 8 Q 15 10 17 12' stroke-width='1'/%3E%3Cpath d='M17 12 Q 23 14 22 22 Q 17 20 15 13 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 12 Q 20 16 22 22' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 32 Q 9 34 7 36' stroke-width='1'/%3E%3Cpath d='M7 36 Q 1 38 2 46 Q 7 44 9 37 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M7 36 Q 4 40 2 46' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 54 Q 15 56 17 58' stroke-width='1'/%3E%3Cpath d='M17 58 Q 23 60 22 68 Q 17 66 15 59 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 58 Q 20 62 22 68' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3C/svg%3E");
 	}
@@ -284,13 +292,23 @@
 		font-weight: 500;
 	}
 
+	.past-more {
+		margin: 0;
+		padding-left: 0.2em;
+		font-size: 1.3rem;
+		letter-spacing: 0.2em;
+		line-height: 1;
+		color: var(--color-border);
+	}
+
 	@media (max-width: 600px) {
 		section {
 			align-items: flex-start;
 		}
 
 		section > h1,
-		section > h2 {
+		section > h2,
+		section > h3 {
 			align-self: center;
 		}
 
