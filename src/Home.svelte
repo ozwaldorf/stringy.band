@@ -133,7 +133,7 @@
 	}
 
 	.contact a :global(svg) {
-		vertical-align: -0.2em;
+		vertical-align: -0.3em;
 		margin-right: 0.4rem;
 	}
 
