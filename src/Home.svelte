@@ -7,11 +7,10 @@
 </script>
 
 <main>
-	<h1>Coming soon</h1>
 	<img src="/logo.png" alt="Stringy and the Beans" />
 
 	<section class="socials-section" aria-label="Socials">
-		<h2>Follow us</h2>
+		<h1>Follow us</h1>
 		<nav class="socials">
 			<a
 				href="https://www.instagram.com/stringyandthebeans"
@@ -52,7 +51,7 @@
 	<Shows />
 
 	<section class="contact" aria-label="Booking contact">
-		<h2>Bookings</h2>
+		<h1>Bookings</h1>
 		<a href="mailto:beans@stringy.band">beans@stringy.band</a>
 	</section>
 </main>
@@ -74,13 +73,6 @@
 		height: auto;
 	}
 
-	h1 {
-		margin: 0;
-		font-size: 1.5rem;
-		letter-spacing: 0.08em;
-		color: var(--color-text-muted);
-	}
-
 	.contact {
 		display: flex;
 		flex-direction: column;
@@ -89,9 +81,9 @@
 		margin-top: 1rem;
 	}
 
-	.contact h2 {
+	.contact h1 {
 		margin: 0;
-		font-size: 0.8rem;
+		font-size: 1.25rem;
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 	}
@@ -109,9 +101,9 @@
 		margin-top: 1.5rem;
 	}
 
-	.socials-section h2 {
+	.socials-section h1 {
 		margin: 0;
-		font-size: 0.8rem;
+		font-size: 1.25rem;
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 	}

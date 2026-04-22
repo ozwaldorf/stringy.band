@@ -61,9 +61,9 @@
 </script>
 
 <section aria-label="Shows">
-	<h2>Shows</h2>
+	<h1>Shows</h1>
 
-	<h3>Upcoming</h3>
+	<h2>Upcoming</h2>
 	{#if upcoming.length === 0}
 		<p class="state">No upcoming shows</p>
 	{:else}
@@ -99,7 +99,7 @@
 	{/if}
 
 	{#if past.length > 0}
-		<h3>Past</h3>
+		<h2>Past</h2>
 		<ul class="past">
 			{#each past as show (show.uid)}
 				<li>
@@ -132,16 +132,16 @@
 		width: 100%;
 	}
 
-	h2 {
+	h1 {
 		margin: 0;
-		font-size: 0.8rem;
+		font-size: 1.25rem;
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 	}
 
-	h3 {
-		margin: 0.5rem 0 0.25rem;
-		font-size: 0.7rem;
+	h2 {
+		margin: 0.75rem 0 0.25rem;
+		font-size: 0.95rem;
 		letter-spacing: 0.16em;
 		color: var(--color-text-faint);
 	}
