@@ -3,16 +3,12 @@
 	import IconInstagram from '~icons/carbon/logo-instagram';
 	import IconTiktok from '~icons/simple-icons/tiktok';
 	import IconFacebook from '~icons/carbon/logo-facebook';
+	import Shows from './Shows.svelte';
 </script>
 
 <main>
 	<h1>Coming soon</h1>
 	<img src="/logo.png" alt="Stringy and the Beans" />
-
-	<section class="contact" aria-label="Booking contact">
-		<h2>Bookings</h2>
-		<a href="mailto:beans@stringy.band">beans@stringy.band</a>
-	</section>
 
 	<section class="socials-section" aria-label="Socials">
 		<h2>Follow us</h2>
@@ -51,6 +47,13 @@
 				<IconTiktok />
 			</a>
 		</nav>
+	</section>
+
+	<Shows />
+
+	<section class="contact" aria-label="Booking contact">
+		<h2>Bookings</h2>
+		<a href="mailto:beans@stringy.band">beans@stringy.band</a>
 	</section>
 </main>
 
