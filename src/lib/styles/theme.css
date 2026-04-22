@@ -1,0 +1,121 @@
+/* Gruvbox Light palette — https://github.com/morhetz/gruvbox */
+:root {
+	--gb-bg0-h: #f9f5d7;
+	--gb-bg0: #fbf1c7;
+	--gb-bg0-s: #f2e5bc;
+	--gb-bg1: #ebdbb2;
+	--gb-bg2: #d5c4a1;
+	--gb-bg3: #bdae93;
+	--gb-bg4: #a89984;
+
+	--gb-fg0: #282828;
+	--gb-fg1: #3c3836;
+	--gb-fg2: #504945;
+	--gb-fg3: #665c54;
+	--gb-fg4: #7c6f64;
+
+	--gb-gray: #928374;
+
+	--gb-red: #cc241d;
+	--gb-red-dim: #9d0006;
+	--gb-green: #98971a;
+	--gb-green-dim: #79740e;
+	--gb-yellow: #d79921;
+	--gb-yellow-dim: #b57614;
+	--gb-blue: #458588;
+	--gb-blue-dim: #076678;
+	--gb-purple: #b16286;
+	--gb-purple-dim: #8f3f71;
+	--gb-aqua: #689d6a;
+	--gb-aqua-dim: #427b58;
+	--gb-orange: #d65d0e;
+	--gb-orange-dim: #af3a03;
+
+	/* Semantic tokens */
+	--color-bg: var(--gb-bg0);
+	--color-bg-subtle: var(--gb-bg0-s);
+	--color-bg-muted: var(--gb-bg1);
+	--color-surface: var(--gb-bg0-h);
+	--color-border: var(--gb-bg3);
+	--color-border-subtle: var(--gb-bg2);
+
+	--color-text: var(--gb-fg1);
+	--color-text-muted: var(--gb-fg3);
+	--color-text-subtle: var(--gb-fg4);
+	--color-text-faint: var(--gb-gray);
+
+	--color-accent: var(--gb-blue-dim);
+	--color-accent-hover: var(--gb-blue);
+	--color-link: var(--gb-blue-dim);
+	--color-link-hover: var(--gb-orange-dim);
+
+	--color-success: var(--gb-green-dim);
+	--color-warning: var(--gb-yellow-dim);
+	--color-danger: var(--gb-red-dim);
+	--color-info: var(--gb-aqua-dim);
+
+	--color-code-bg: var(--gb-bg1);
+	--color-selection-bg: var(--gb-bg2);
+}
+
+html {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+}
+
+:root {
+	--font-sans:
+		'Epilogue', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+		Arial, sans-serif;
+}
+
+body {
+	margin: 0;
+	font-family: var(--font-sans);
+	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	line-height: 1.15;
+}
+
+a {
+	color: var(--color-link);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+a:hover {
+	color: var(--color-link-hover);
+}
+
+code,
+pre,
+kbd,
+samp {
+	font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+	background-color: var(--color-code-bg);
+	border-radius: 4px;
+}
+
+code {
+	padding: 0.1em 0.35em;
+}
+
+pre {
+	padding: 0.75rem 1rem;
+	overflow-x: auto;
+}
+
+::selection {
+	background-color: var(--color-selection-bg);
+	color: var(--color-text);
+}
