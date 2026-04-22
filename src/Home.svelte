@@ -17,6 +17,7 @@
 		<h1>Follow us</h1>
 		<nav class="socials">
 			<a
+				class="instagram"
 				href="https://www.instagram.com/stringyandthebeans"
 				target="_blank"
 				rel="noopener"
@@ -25,6 +26,7 @@
 				<IconInstagram />
 			</a>
 			<a
+				class="facebook"
 				href="https://www.facebook.com/profile.php?id=61567240809186"
 				target="_blank"
 				rel="noopener"
@@ -33,6 +35,7 @@
 				<IconFacebook />
 			</a>
 			<a
+				class="youtube"
 				href="https://www.youtube.com/@stringyandthebeans"
 				target="_blank"
 				rel="noopener"
@@ -136,14 +139,29 @@
 		justify-content: center;
 		width: 2rem;
 		height: 2rem;
-		color: var(--color-text-muted);
 		font-size: 2rem;
 		line-height: 0;
-		transition: color 120ms ease;
+		transition: color 120ms ease, transform 120ms ease;
+	}
+
+	.socials a.instagram {
+		color: var(--gb-purple);
+	}
+
+	.socials a.facebook {
+		color: var(--gb-blue);
+	}
+
+	.socials a.youtube {
+		color: var(--gb-red);
+	}
+
+	.socials a.tiktok {
+		color: var(--gb-aqua);
 	}
 
 	.socials a:hover {
-		color: var(--color-link-hover);
+		transform: translateY(-2px);
 	}
 
 	.socials a.tiktok :global(svg) {
