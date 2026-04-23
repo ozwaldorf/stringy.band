@@ -105,14 +105,19 @@ function splitLocation(location?: string): {
 
 function extractUrl(description?: string): string | undefined {
 	if (!description) return;
-	const href = description.match(/href="([^"]+)"/i);
-	if (href) return href[1];
-	const bare = description.match(/https?:\/\/[^\s<>"]+/);
-	return bare?.[0];
+	const hrefs = [...description.matchAll(/href="([^"]+)"/gi)].map((m) => m[1]);
+	const nonIgHref = hrefs.find((u) => !isInstagramUrl(u));
+	if (nonIgHref) return nonIgHref;
+	const bares = [...description.matchAll(/https?:\/\/[^\s<>"]+/g)].map((m) => m[0]);
+	return bares.find((u) => !isInstagramUrl(u));
+}
+
+function isInstagramUrl(url: string): boolean {
+	return /^https?:\/\/(?:www\.)?instagram\.com\//i.test(url);
 }
 
 function extractInstagram(description?: string): string | undefined {
 	if (!description) return;
 	const match = description.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s<>"]+/i);
-	return match?.[0];
+	return match?.[0].replace(/[).,;:!?]+$/, '');
 }

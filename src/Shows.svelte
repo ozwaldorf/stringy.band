@@ -103,8 +103,8 @@
 									</a>
 								{/if}
 								{#if show.instagram}
-									<a class="ig-link" href={show.instagram} target="_blank" rel="noopener" aria-label="Instagram post">
-										<IconInstagram /> Instagram
+									<a class="ig-link" href={show.instagram} target="_blank" rel="noopener" aria-label="Event flier on Instagram">
+										<IconInstagram /> Event Flier
 									</a>
 								{/if}
 							</div>
