@@ -12,11 +12,12 @@
 	<img src="/logo.png" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
+		<h1>About us</h1>
 		<p>Upstate NY bluegrass quartet</p>
 	</section>
 
 	<section class="socials-section" aria-label="Socials">
-		<h1>Follow us</h1>
+		<h1>Links</h1>
 		<nav class="socials">
 			<a
 				class="instagram"
@@ -57,12 +58,12 @@
 		</nav>
 	</section>
 
-	<Shows />
-
 	<section class="contact" aria-label="Booking contact">
 		<h1>Bookings</h1>
 		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
 	</section>
+
+	<Shows />
 	</div>
 
 	<footer>
@@ -99,11 +100,24 @@
 	img {
 		width: min(420px, 70vw);
 		height: auto;
+		transform: scale(1.1);
+		transform-origin: center;
 	}
 
 	.about {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
 		max-width: 28rem;
 		margin-top: 1rem;
+	}
+
+	.about h1 {
+		margin: 0;
+		font-size: 1.25rem;
+		letter-spacing: 0.14em;
+		color: var(--color-text-subtle);
 	}
 
 	.about p {
