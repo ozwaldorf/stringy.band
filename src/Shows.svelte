@@ -1,6 +1,7 @@
 <script lang="ts">
 	import IconLaunch from '~icons/carbon/launch';
 	import IconLocation from '~icons/carbon/location';
+	import IconInstagram from '~icons/carbon/logo-instagram';
 	import data from './lib/shows.json';
 
 	const all = data.shows.map((s) => ({
@@ -94,10 +95,19 @@
 								rel="noopener"
 							><IconLocation />{show.simpleAddress}</a>
 						{/if}
-						{#if show.url}
-							<a class="details-link" href={show.url} target="_blank" rel="noopener">
-								<IconLaunch /> Event Details
-							</a>
+						{#if show.url || show.instagram}
+							<div class="links">
+								{#if show.url}
+									<a class="details-link" href={show.url} target="_blank" rel="noopener">
+										<IconLaunch /> Event Details
+									</a>
+								{/if}
+								{#if show.instagram}
+									<a class="ig-link" href={show.instagram} target="_blank" rel="noopener" aria-label="Instagram post">
+										<IconInstagram /> Instagram
+									</a>
+								{/if}
+							</div>
 						{/if}
 					</div>
 				</li>
@@ -282,6 +292,29 @@
 		gap: 0.3rem;
 		font-size: 0.85rem;
 		margin-top: 0.1rem;
+	}
+
+	.links {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		margin-top: 0.1rem;
+	}
+
+	.links a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.85rem;
+	}
+
+	.links a.ig-link {
+		color: var(--gb-purple);
+	}
+
+	.links a.ig-link:hover {
+		color: var(--color-link-hover);
 	}
 
 	.past {

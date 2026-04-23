@@ -9,7 +9,7 @@
 
 <main>
 	<div class="content">
-	<img src="/logo.png" alt="Stringy and the Beans" />
+	<img src="/logo.webp" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
 		<h1>About us</h1>

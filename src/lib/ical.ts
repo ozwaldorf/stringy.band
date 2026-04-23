@@ -10,6 +10,7 @@ export type Show = {
 	cityState?: string;
 	description?: string;
 	url?: string;
+	instagram?: string;
 };
 
 export function parseIcal(source: string): Show[] {
@@ -58,7 +59,8 @@ function toShow(fields: Record<string, string>): Show {
 		simpleAddress,
 		cityState,
 		description,
-		url: extractUrl(description)
+		url: extractUrl(description),
+		instagram: extractInstagram(description)
 	};
 }
 
@@ -107,4 +109,10 @@ function extractUrl(description?: string): string | undefined {
 	if (href) return href[1];
 	const bare = description.match(/https?:\/\/[^\s<>"]+/);
 	return bare?.[0];
+}
+
+function extractInstagram(description?: string): string | undefined {
+	if (!description) return;
+	const match = description.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s<>"]+/i);
+	return match?.[0];
 }
