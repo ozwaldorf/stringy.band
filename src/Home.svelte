@@ -5,6 +5,7 @@
 	import IconTiktok from '~icons/simple-icons/tiktok';
 	import IconFacebook from '~icons/carbon/logo-facebook';
 	import Shows from './Shows.svelte';
+	import Videos from './Videos.svelte';
 </script>
 
 <main>
@@ -12,7 +13,6 @@
 	<img src="/logo.webp" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
-		<h1>About us</h1>
 		<p>Upstate NY bluegrass quartet</p>
 	</section>
 
@@ -58,8 +58,10 @@
 		</nav>
 	</section>
 
+	<Videos />
+
 	<section class="contact" aria-label="Booking contact">
-		<h1>Bookings</h1>
+		<h1>Contact Us</h1>
 		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
 	</section>
 
@@ -100,6 +102,7 @@
 	img {
 		width: min(420px, 70vw);
 		height: auto;
+		margin-top: 2.5rem;
 		transform: scale(1.1);
 		transform-origin: center;
 	}
@@ -111,13 +114,6 @@
 		gap: 0.5rem;
 		max-width: 28rem;
 		margin-top: 1rem;
-	}
-
-	.about h1 {
-		margin: 0;
-		font-size: 1.25rem;
-		letter-spacing: 0.14em;
-		color: var(--color-text-subtle);
 	}
 
 	.about p {

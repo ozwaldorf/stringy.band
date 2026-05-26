@@ -4,10 +4,12 @@ import { dirname, resolve } from 'node:path';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { parseIcal } from './src/lib/ical';
+import { CHANNEL_ID, feedUrl, parseFeed } from './src/lib/youtube';
 
 const ICAL_URL =
 	'https://calendar.google.com/calendar/ical/c_7504b3e06e2470e78978542a5c985ab63b1520ebc3edc14db2555be3a0aece55%40group.calendar.google.com/public/basic.ics';
 const SHOWS_OUT = resolve('src/lib/shows.json');
+const VIDEOS_OUT = resolve('src/lib/videos.json');
 
 function fetchShows(): Plugin {
 	async function run() {
@@ -37,6 +39,32 @@ function fetchShows(): Plugin {
 	};
 }
 
+function fetchVideos(): Plugin {
+	async function run() {
+		try {
+			const res = await fetch(feedUrl(CHANNEL_ID));
+			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+			const videos = parseFeed(await res.text());
+			mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
+			writeFileSync(
+				VIDEOS_OUT,
+				JSON.stringify({ fetchedAt: new Date().toISOString(), videos }, null, 2) + '\n'
+			);
+			console.log(`[fetch-videos] wrote ${videos.length} videos`);
+		} catch (err) {
+			console.warn(`[fetch-videos] failed: ${(err as Error).message}`);
+			mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
+			writeFileSync(VIDEOS_OUT, JSON.stringify({ fetchedAt: null, videos: [] }, null, 2) + '\n');
+		}
+	}
+
+	return {
+		name: 'fetch-videos',
+		buildStart: run,
+		configureServer: run
+	};
+}
+
 function spa404(): Plugin {
 	return {
 		name: 'spa-fallback-404',
@@ -49,7 +77,7 @@ function spa404(): Plugin {
 }
 
 export default defineConfig({
-	plugins: [fetchShows(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
+	plugins: [fetchShows(), fetchVideos(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
 	build: {
 		outDir: 'build'
 	}
