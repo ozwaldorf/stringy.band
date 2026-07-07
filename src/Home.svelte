@@ -10,7 +10,7 @@
 
 <main>
 	<div class="content">
-	<img src="/logo.webp" alt="Stringy and the Beans" />
+	<img src="/logo.svg" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
 		<p>Upstate NY bluegrass quartet</p>
