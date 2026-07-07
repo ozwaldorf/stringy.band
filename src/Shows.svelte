@@ -11,10 +11,11 @@
 	}));
 	const now = Date.now();
 	const upcoming = all.filter((s) => s.end.getTime() >= now);
-	const past = all
-		.filter((s) => s.end.getTime() < now)
-		.reverse()
-		.slice(0, 5);
+	const past = all.filter((s) => s.end.getTime() < now).reverse();
+
+	const PAST_LIMIT = 5;
+	let pastExpanded = $state(false);
+	const visiblePast = $derived(pastExpanded ? past : past.slice(0, PAST_LIMIT));
 
 	const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 	const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short' });
@@ -118,7 +119,7 @@
 	{#if past.length > 0}
 		<h2>Past</h2>
 		<ul class="past">
-			{#each past as show (show.uid)}
+			{#each visiblePast as show (show.uid)}
 				<li>
 					<div class="when">
 						<span class="date date-full">{formatDate(show.start)}</span>
@@ -137,7 +138,15 @@
 				</li>
 			{/each}
 		</ul>
-		<h3 class="past-more">...</h3>
+		{#if past.length > PAST_LIMIT}
+			<button class="past-more" onclick={() => (pastExpanded = !pastExpanded)}>
+				{#if pastExpanded}
+					Show less
+				{:else}
+					and {past.length - PAST_LIMIT} more show{past.length - PAST_LIMIT === 1 ? '' : 's'}
+				{/if}
+			</button>
+		{/if}
 	{/if}
 </section>
 
@@ -326,12 +335,21 @@
 	}
 
 	.past-more {
-		margin: 0;
-		padding-left: 0.2em;
-		font-size: 1.3rem;
-		letter-spacing: 0.2em;
-		line-height: 1;
-		color: var(--color-border);
+		margin: 0.25rem 0 0;
+		padding: 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 0.85rem;
+		letter-spacing: 0.04em;
+		color: var(--color-text-subtle);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.past-more:hover {
+		color: var(--color-link-hover);
 	}
 
 	@media (max-width: 600px) {
@@ -341,7 +359,7 @@
 
 		section > h1,
 		section > h2,
-		section > h3 {
+		section > .past-more {
 			align-self: center;
 		}
 
