@@ -3,8 +3,9 @@
 	import IconLocation from '~icons/carbon/location';
 	import IconInstagram from '~icons/carbon/logo-instagram';
 	import data from './lib/shows.json';
+	import type { Show } from './lib/ical';
 
-	const all = data.shows.map((s) => ({
+	const all: Show[] = data.shows.map((s) => ({
 		...s,
 		start: new Date(s.start),
 		end: new Date(s.end)
@@ -236,9 +237,6 @@
 		border-left-width: 2px;
 	}
 
-	.upcoming-row {
-		--stalk: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 80' fill='none' stroke='%2379740e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 0 C 14 10, 9 18, 12 28 C 15 38, 9 48, 12 58 C 15 68, 10 76, 12 80' /%3E%3Cg%3E%3Cpath d='M12 8 Q 15 10 17 12' stroke-width='1'/%3E%3Cpath d='M17 12 Q 23 14 22 22 Q 17 20 15 13 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 12 Q 20 16 22 22' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 32 Q 9 34 7 36' stroke-width='1'/%3E%3Cpath d='M7 36 Q 1 38 2 46 Q 7 44 9 37 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M7 36 Q 4 40 2 46' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M12 54 Q 15 56 17 58' stroke-width='1'/%3E%3Cpath d='M17 58 Q 23 60 22 68 Q 17 66 15 59 Z' fill='%2398971a' stroke='%2379740e' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M17 58 Q 20 62 22 68' stroke='%2379740e' stroke-width='0.7' opacity='0.7' fill='none'/%3E%3C/g%3E%3C/svg%3E");
-	}
 
 	.upcoming-row .details::before {
 		content: '';
@@ -247,7 +245,7 @@
 		top: 0;
 		bottom: -1rem;
 		width: 2rem;
-		background-image: var(--stalk);
+		background-image: var(--floral-vine);
 		background-repeat: repeat-y;
 		background-size: 100% auto;
 		background-position: left top;

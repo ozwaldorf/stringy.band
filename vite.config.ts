@@ -1,15 +1,18 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { parseIcal } from './src/lib/ical';
+import { fetchProducts as loadProducts, withProductPage, type Product } from './src/lib/fourthwall';
+import { fetchProductPage } from './src/lib/product-page';
 import { CHANNEL_ID, feedUrl, parseFeed } from './src/lib/youtube';
 
 const ICAL_URL =
 	'https://calendar.google.com/calendar/ical/c_7504b3e06e2470e78978542a5c985ab63b1520ebc3edc14db2555be3a0aece55%40group.calendar.google.com/public/basic.ics';
 const SHOWS_OUT = resolve('src/lib/shows.json');
 const VIDEOS_OUT = resolve('src/lib/videos.json');
+const PRODUCTS_OUT = resolve('src/lib/products.json');
 
 function fetchShows(): Plugin {
 	async function run() {
@@ -72,12 +75,84 @@ function spa404(): Plugin {
 		closeBundle() {
 			const out = resolve('build');
 			copyFileSync(resolve(out, 'index.html'), resolve(out, '404.html'));
+			const source = readFileSync(resolve(out, 'index.html'), 'utf8');
+			const { products } = JSON.parse(readFileSync(PRODUCTS_OUT, 'utf8')) as {
+				products: { handle: string; title: string }[];
+			};
+			const routes = [
+				{ path: 'shop', title: 'Shop' },
+				{ path: 'shop/bag', title: 'Your bag' },
+				...products.map((product) => {
+					const handle = encodeURIComponent(product.handle);
+					if (!handle || handle === '.' || handle === '..' || handle === 'bag') {
+						throw new Error('Invalid shop product route');
+					}
+					return { path: `shop/${handle}`, title: product.title };
+				})
+			];
+			const escapeHtml = (value: string) => value
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+			for (const route of routes) {
+				const title = escapeHtml(`${route.title} - Stringy and the Beans`);
+				const url = escapeHtml(`https://stringy.band/${route.path}/`);
+				const html = source
+					.replace(/<title>[\s\S]*?<\/title>/, () => `<title>${title}</title>`)
+					.replace(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*>/, () => `<link rel="canonical" href="${url}" />`)
+					.replace(/<meta\b(?=[^>]*\bproperty=["']og:url["'])[^>]*>/, () => `<meta property="og:url" content="${url}" />`)
+					.replace(/<meta\b(?=[^>]*\bproperty=["']og:title["'])[^>]*>/, () => `<meta property="og:title" content="${title}" />`)
+					.replace(/<meta\b(?=[^>]*\bname=["']twitter:title["'])[^>]*>/, () => `<meta name="twitter:title" content="${title}" />`);
+				mkdirSync(resolve(out, route.path), { recursive: true });
+				writeFileSync(resolve(out, route.path, 'index.html'), html);
+			}
 		}
 	};
 }
 
+function fetchProducts(): Plugin {
+	async function run() {
+		let previousProducts: Product[] = [];
+		try {
+			const snapshot = JSON.parse(readFileSync(PRODUCTS_OUT, 'utf8'));
+			if (Array.isArray(snapshot.products)) previousProducts = snapshot.products;
+		} catch {}
+		try {
+			const products = await Promise.all((await loadProducts()).map(async product => {
+				try {
+					return withProductPage(product, await fetchProductPage(product));
+				} catch (err) {
+					console.warn(`[fetch-products] page ${product.handle}: ${(err as Error).message}`);
+					return withProductPage(product, previousProducts.find(item => item.id === product.id));
+				}
+			}));
+			mkdirSync(dirname(PRODUCTS_OUT), { recursive: true });
+			writeFileSync(
+				PRODUCTS_OUT,
+				JSON.stringify({ fetchedAt: new Date().toISOString(), products }, null, 2) + '\n'
+			);
+			console.log(`[fetch-products] wrote ${products.length} products`);
+		} catch (err) {
+			console.warn(`[fetch-products] failed: ${(err as Error).message}`);
+			try {
+				if (Array.isArray(JSON.parse(readFileSync(PRODUCTS_OUT, 'utf8')).products)) return;
+			} catch {}
+			mkdirSync(dirname(PRODUCTS_OUT), { recursive: true });
+			writeFileSync(PRODUCTS_OUT, JSON.stringify({ fetchedAt: null, products: [] }, null, 2) + '\n');
+		}
+	}
+
+	return {
+		name: 'fetch-products',
+		buildStart: run,
+		configureServer: run
+	};
+}
+
 export default defineConfig({
-	plugins: [fetchShows(), fetchVideos(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
+	plugins: [fetchShows(), fetchVideos(), fetchProducts(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
 	build: {
 		outDir: 'build'
 	}

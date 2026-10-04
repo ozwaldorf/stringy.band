@@ -11,6 +11,7 @@ node_modules
 # Generated at build time by vite.config.ts
 /src/lib/shows.json
 /src/lib/videos.json
+/src/lib/products.json
 
 # OS
 .DS_Store

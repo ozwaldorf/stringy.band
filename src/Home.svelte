@@ -6,9 +6,13 @@
 	import IconFacebook from '~icons/carbon/logo-facebook';
 	import Shows from './Shows.svelte';
 	import Videos from './Videos.svelte';
+	import ShopPreview from './ShopPreview.svelte';
+	import Footer from './Footer.svelte';
 </script>
 
-<main>
+<svelte:head><title>Stringy and the Beans - Links and Upcoming Events</title></svelte:head>
+
+<main tabindex="-1">
 	<div class="content">
 	<img src="/logo.svg" alt="Stringy and the Beans" />
 
@@ -58,19 +62,18 @@
 		</nav>
 	</section>
 
-	<Videos />
-
 	<section class="contact" aria-label="Booking contact">
 		<h1>Contact Us</h1>
 		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
 	</section>
 
+	<Videos />
+	<ShopPreview />
+
 	<Shows />
 	</div>
 
-	<footer>
-		<small>© {new Date().getFullYear()} Stringy and the Beans</small>
-	</footer>
+	<Footer />
 </main>
 
 <style>
@@ -90,13 +93,6 @@
 		align-items: center;
 		justify-content: center;
 		gap: 1.5rem;
-	}
-
-	footer {
-		margin-top: 2rem;
-		padding-top: 1rem;
-		color: var(--color-text-faint);
-		font-size: 0.8rem;
 	}
 
 	img {

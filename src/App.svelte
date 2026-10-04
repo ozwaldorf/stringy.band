@@ -1,11 +1,20 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import Home from './Home.svelte';
+	import Shop from './Shop.svelte';
 	import NotFound from './NotFound.svelte';
 
-	let path = $state(window.location.pathname);
+	let path = $state(window.location.pathname.replace(/\/+$/, '') || '/');
+
+	async function updatePath() {
+		path = window.location.pathname.replace(/\/+$/, '') || '/';
+		await tick();
+		window.scrollTo(0, 0);
+		document.querySelector<HTMLElement>('main h1[tabindex], main[tabindex]')?.focus({ preventScroll: true });
+	}
 
 	$effect(() => {
-		const onPopState = () => (path = window.location.pathname);
+		const onPopState = () => { void updatePath(); };
 		window.addEventListener('popstate', onPopState);
 
 		const onClick = (event: MouseEvent) => {
@@ -22,12 +31,11 @@
 
 			const url = new URL(anchor.href, window.location.href);
 			if (url.origin !== window.location.origin) return;
+			if (url.hash || (url.pathname === window.location.pathname && url.search === window.location.search)) return;
 
 			event.preventDefault();
-			if (url.pathname !== window.location.pathname || url.search !== window.location.search) {
-				window.history.pushState({}, '', url);
-				path = url.pathname;
-			}
+			window.history.pushState({}, '', url);
+			void updatePath();
 		};
 		document.addEventListener('click', onClick);
 
@@ -40,6 +48,8 @@
 
 {#if path === '/'}
 	<Home />
+{:else if path === '/shop' || path.startsWith('/shop/')}
+	<Shop handle={path.slice('/shop'.length).replace(/^\//, '')} />
 {:else}
 	<NotFound />
 {/if}
