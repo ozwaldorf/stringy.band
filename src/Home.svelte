@@ -62,15 +62,15 @@
 		</nav>
 	</section>
 
-	<section class="contact" aria-label="Booking contact">
-		<h1>Contact Us</h1>
-		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
-	</section>
-
 	<Videos />
 	<ShopPreview />
 
 	<Shows />
+
+	<section class="contact" aria-label="Booking contact">
+		<h1>Contact Us</h1>
+		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
+	</section>
 	</div>
 
 	<Footer />
