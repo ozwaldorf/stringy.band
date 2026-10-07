@@ -24,6 +24,24 @@
 	const sourceColor = $derived(source.colors?.find(entry => entry.name === color?.name));
 	const photos = $derived(sourceColor?.images?.length ? sourceColor.images : source.images?.length ? source.images : [source.image]);
 	const photoIndex = $derived(Math.max(0, photos.indexOf(selectedPhoto)));
+	const preloadedImages = new Map<string, HTMLImageElement>();
+
+	$effect(() => {
+		const urls = new Set(product.members.flatMap((member) => [
+			member.image,
+			...(member.images ?? []),
+			...(member.colors ?? []).flatMap((entry) => entry.images ?? [])
+		]));
+		for (const url of urls) {
+			if (preloadedImages.has(url)) continue;
+			const image = new Image();
+			image.decoding = 'async';
+			image.fetchPriority = 'low';
+			preloadedImages.set(url, image);
+			image.src = url;
+			void image.decode().catch(() => preloadedImages.delete(url));
+		}
+	});
 
 	function isAvailable(variant: Variant | undefined): boolean {
 		return !!variant && productSource(product, variant.id).available;
