@@ -6,6 +6,48 @@ export type ProductOptions = {
 	variants: Array<{ variant: Variant; color: string; size: string }>;
 };
 
+export type ProductGroup = Product & { members: Product[] };
+
+export function groupProducts(products: Product[]): ProductGroup[] {
+	const groups = new Map<string, Product[]>();
+	for (const product of products) {
+		const members = groups.get(product.title);
+		if (members) members.push(product);
+		else groups.set(product.title, [product]);
+	}
+	return [...groups.values()].map((members) => {
+		const first = members[0];
+		if (members.length === 1) return { ...first, members };
+		const colors = new Map<string, ProductColor>();
+		for (const member of members) {
+			for (const color of member.colors ?? []) {
+				const previous = colors.get(color.name);
+				colors.set(color.name, {
+					...color,
+					swatches: [...new Set([...(previous?.swatches ?? []), ...color.swatches])],
+					images: [...new Set([...(previous?.images ?? []), ...(color.images?.length ? color.images : member.images ?? [member.image])])]
+				});
+			}
+		}
+		return {
+			...first,
+			members,
+			available: members.some((member) => member.available),
+			variants: members.flatMap((member) => member.variants),
+			images: [...new Set(members.flatMap((member) => member.images ?? [member.image]))],
+			colors: [...colors.values()],
+			variantOptions: Object.assign({}, ...members.map((member) => member.variantOptions ?? {}))
+		};
+	});
+}
+
+export function productSource(group: ProductGroup, variantId?: string, colorName?: string, handle?: string): Product {
+	return group.members.find((member) => member.variants.some((variant) => variant.id === variantId))
+		?? group.members.find((member) => member.colors?.some((color) => color.name === colorName))
+		?? group.members.find((member) => member.handle === handle)
+		?? group.members[0];
+}
+
 export function productOptions(product: Product): ProductOptions | undefined {
 	if (!product.variants.length || !product.colors?.length || !product.variantOptions) return;
 	const colorNames = new Set(product.colors.map((color) => color.name));

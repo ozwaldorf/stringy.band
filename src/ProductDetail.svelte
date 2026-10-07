@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { addToCart, cart } from './lib/cart';
-	import { formatPrice, productPrice, type Product } from './lib/fourthwall';
+	import { formatPrice, productPrice, type Variant } from './lib/fourthwall';
 	import ProductSections from './ProductSections.svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
 	import ShopNotice from './ShopNotice.svelte';
-	import { optionVariant, productOptions } from './lib/product-options';
+	import { optionVariant, productOptions, productSource, type ProductGroup } from './lib/product-options';
 
-	let { product }: { product: Product } = $props();
+	let { product, initialHandle }: { product: ProductGroup; initialHandle: string } = $props();
 	let variantId = $state('');
 	let colorName = $state('');
 	let sizeName = $state('');
@@ -14,13 +14,21 @@
 	let added = $state(false);
 	let selectedPhoto = $state('');
 	const options = $derived(productOptions(product));
-	const color = $derived(colorName ? options?.colors.find(color => color.name === colorName) : options?.colors[0]);
+	const initialColor = $derived(productSource(product, undefined, undefined, initialHandle).colors?.[0]?.name);
+	const color = $derived(colorName ? options?.colors.find(color => color.name === colorName) : options?.colors.find(color => color.name === initialColor) ?? options?.colors[0]);
 	const size = $derived(sizeName || (options?.sizes.length === 1 ? options.sizes[0] : ''));
-	const photos = $derived(color?.images?.length ? color.images : product.images?.length ? product.images : [product.image]);
-	const photoIndex = $derived(Math.max(0, photos.indexOf(selectedPhoto)));
 	const selected = $derived(options ? optionVariant(options, color?.name ?? '', size) : product.variants.length === 1
 		? product.variants[0]
 		: product.variants.find((variant) => variant.id === variantId));
+	const source = $derived(productSource(product, selected?.id, color?.name, initialHandle));
+	const sourceColor = $derived(source.colors?.find(entry => entry.name === color?.name));
+	const photos = $derived(sourceColor?.images?.length ? sourceColor.images : source.images?.length ? source.images : [source.image]);
+	const photoIndex = $derived(Math.max(0, photos.indexOf(selectedPhoto)));
+
+	function isAvailable(variant: Variant | undefined): boolean {
+		return !!variant && productSource(product, variant.id).available;
+	}
+
 	function resetFeedback() {
 		message = '';
 		added = false;
@@ -42,7 +50,7 @@
 
 	function add(event: SubmitEvent) {
 		event.preventDefault();
-		if (!selected || !product.available || added) return;
+		if (!selected || !isAvailable(selected) || added) return;
 		if (($cart.find((item) => item.variantId === selected.id)?.quantity ?? 0) >= 99) {
 			message = 'You already have the maximum quantity of this option in your bag.';
 			return;
@@ -93,7 +101,7 @@
 							{#each options.sizes as option (option)}
 								{@const variant = optionVariant(options, color?.name ?? '', option)}
 								<label class="option">
-									<input type="radio" name="product-size" value={option} checked={!!variant && selected?.id === variant.id} disabled={!variant} required aria-label={variant ? `${option}, ${formatPrice(variant.price, variant.currency)}` : `${option}, unavailable${color ? ` in ${color.name}` : ''}`} onchange={() => { colorName = color?.name ?? ''; sizeName = option; resetFeedback(); }} />
+									<input type="radio" name="product-size" value={option} checked={!!variant && selected?.id === variant.id} disabled={!isAvailable(variant)} required aria-label={variant && isAvailable(variant) ? `${option}, ${formatPrice(variant.price, variant.currency)}` : `${option}, unavailable${color ? ` in ${color.name}` : ''}`} onchange={() => { colorName = color?.name ?? ''; sizeName = option; resetFeedback(); }} />
 									<span>{option}</span>
 								</label>
 							{/each}
@@ -105,7 +113,7 @@
 						<div class="options">
 							{#each product.variants as variant (variant.id)}
 								<label class="option">
-									<input type="radio" name="product-option" value={variant.id} bind:group={variantId} required aria-label={`${variant.title}, ${formatPrice(variant.price, variant.currency)}`} onchange={resetFeedback} />
+									<input type="radio" name="product-option" value={variant.id} bind:group={variantId} disabled={!isAvailable(variant)} required aria-label={`${variant.title}, ${formatPrice(variant.price, variant.currency)}`} onchange={resetFeedback} />
 									<span>{variant.title}</span>
 								</label>
 							{/each}
@@ -114,14 +122,15 @@
 				{:else if selected}
 					<p class="variant-title">{selected.title}</p>
 				{/if}
-				<button class="shop-button" type="submit" disabled={!selected} aria-disabled={added} aria-live="polite" aria-atomic="true">{added ? 'Added' : 'Add to bag'}</button>
+				{#if color && !source.available}<ShopNotice title="Color unavailable" message="This color is currently sold out. Choose another color to continue." />{/if}
+				<button class="shop-button" type="submit" disabled={!isAvailable(selected)} aria-disabled={added} aria-live="polite" aria-atomic="true">{added ? 'Added' : 'Add to bag'}</button>
 			</form>
 		{:else}
 			<ShopNotice title="Sold out" message="This item is currently unavailable. Take a look at the other merch." actionLabel="Browse all merch" actionHref="/shop" />
 		{/if}
 		{#if message && product.available}<ShopNotice title="Quantity limit reached" {message} tone="warning" actionLabel="View bag" actionHref="/shop/bag" />{/if}
 		<p class="checkout-note">Shipping, taxes, and final availability confirmed at checkout.</p>
-		{#if product.sections?.length}<ProductSections sections={product.sections} />{/if}
+		{#if source.sections?.length}<ProductSections sections={source.sections} />{/if}
 	</div>
 </div>
 

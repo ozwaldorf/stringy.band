@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { optionVariant, productOptions, variantImage } from '../src/lib/product-options.ts';
+import { groupProducts, optionVariant, productOptions, productSource, variantImage } from '../src/lib/product-options.ts';
+import { cartLines, reconcileCart } from '../src/lib/cart.ts';
+import { checkoutUrl, withProductPage } from '../src/lib/fourthwall.ts';
 
 function product() {
 	const variants = [
@@ -96,4 +98,65 @@ test('does not use stale option metadata to choose a variant image', () => {
 	assert.equal(variantImage(value, value.variants[2].id), value.image);
 	delete value.variantOptions;
 	assert.equal(variantImage(value, value.variants[2].id), value.image);
+});
+
+function splitProducts() {
+	const original = product();
+	const moss = { ...original, variants: original.variants.slice(0, 2), sections: [{ title: 'More details', content: [{ type: 'text', text: 'Moss fabric' }] }] };
+	const ivory = { ...original, id: '55555555-5555-4555-8555-555555555555', handle: 'ivory-tee', variants: original.variants.slice(2), sections: [{ title: 'More details', content: [{ type: 'text', text: 'Ivory fabric' }] }] };
+	return [moss, ivory].map(value => withProductPage(value));
+}
+
+test('groups identical titles at their first occurrence without changing source products', () => {
+	const [moss, ivory] = splitProducts();
+	const other = { ...moss, id: 'other', title: 'Hat', handle: 'hat' };
+	const differentCase = { ...ivory, id: 'case', title: 'band tee', handle: 'lowercase' };
+	const products = [moss, other, ivory, differentCase];
+	const snapshot = structuredClone(products);
+	const groups = groupProducts(products);
+	assert.deepEqual(groups.map(value => value.id), [moss.id, other.id, differentCase.id]);
+	assert.equal(groups[0].handle, moss.handle);
+	assert.deepEqual(groups[0].members, [moss, ivory]);
+	assert.deepEqual(products, snapshot);
+	assert.deepEqual(productOptions(groups[0]).colors.map(color => color.name), ['Moss', 'Ivory']);
+});
+
+test('grouped selections retain the original checkout IDs, prices, galleries and details', () => {
+	const products = splitProducts();
+	const [group] = groupProducts(products);
+	const selected = optionVariant(productOptions(group), 'Ivory', 'S');
+	assert.equal(selected.id, products[1].variants[0].id);
+	assert.equal(selected.price, 3100);
+	assert.equal(productSource(group, selected.id), products[1]);
+	assert.equal(productSource(group, undefined, 'Ivory'), products[1]);
+	assert.equal(productSource(group, undefined, undefined, 'ivory-tee'), products[1]);
+	assert.equal(variantImage(group, selected.id), products[1].colors[0].images[0]);
+	const items = [{ variantId: selected.id, quantity: 1 }];
+	assert.equal(cartLines(items, products)[0].product, products[1]);
+	assert.deepEqual(reconcileCart(items, products), items);
+	assert.ok(checkoutUrl(items).includes(selected.id));
+});
+
+test('availability and removals stay attached to the source product across refreshes', () => {
+	const [moss, ivory] = splitProducts();
+	ivory.available = false;
+	const [group] = groupProducts([moss, ivory]);
+	assert.equal(group.available, true);
+	assert.equal(productSource(group, ivory.variants[0].id).available, false);
+	assert.deepEqual(reconcileCart([{ variantId: ivory.variants[0].id, quantity: 1 }], [moss, ivory]), []);
+	assert.equal(groupProducts([{ ...moss, available: false }, ivory])[0].available, false);
+	const [refreshed] = groupProducts([moss]);
+	assert.equal(optionVariant(productOptions(refreshed), 'Ivory', 'S'), undefined);
+	assert.equal(groupProducts([ivory])[0].handle, ivory.handle);
+});
+
+test('missing or ambiguous metadata keeps grouped variants reachable without inventing swatches', () => {
+	const [moss, ivory] = splitProducts();
+	delete ivory.variantOptions;
+	const [group] = groupProducts([moss, ivory]);
+	assert.equal(productOptions(group), undefined);
+	assert.deepEqual(group.variants, [...moss.variants, ...ivory.variants]);
+	const duplicate = { ...moss, id: 'duplicate', variants: moss.variants.map(variant => ({ ...variant, id: `${variant.id.slice(0, -1)}9` })) };
+	duplicate.variantOptions = Object.fromEntries(duplicate.variants.map((variant, index) => [variant.id, moss.variantOptions[moss.variants[index].id]]));
+	assert.equal(productOptions(groupProducts([moss, duplicate])[0]), undefined);
 });

@@ -1,6 +1,7 @@
-import { get, writable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import data from './products.json';
 import { fetchProducts, withProductPage, type Product } from './fourthwall';
+import { groupProducts } from './product-options';
 
 export const catalog = writable({
 	products: (data.products as Product[]).map(product => withProductPage(product)),
@@ -9,6 +10,8 @@ export const catalog = writable({
 	loading: false,
 	error: ''
 });
+
+export const groupedProducts = derived(catalog, ($catalog) => groupProducts($catalog.products));
 
 let pending: Promise<Product[]> | undefined;
 let refreshedAt = 0;

@@ -9,11 +9,11 @@
 	import ShopNotice from './ShopNotice.svelte';
 	import Footer from './Footer.svelte';
 	import { cart } from './lib/cart';
-	import { catalog, refreshCatalog } from './lib/catalog';
+	import { catalog, groupedProducts, refreshCatalog } from './lib/catalog';
 	import './lib/styles/shop.css';
 
 	let { handle = '' }: { handle?: string } = $props();
-	const product = $derived($catalog.products.find((item) => item.handle === handle));
+	const product = $derived($groupedProducts.find((item) => item.members.some((member) => member.handle === handle)));
 	const bagCount = $derived($cart.reduce((total, item) => total + item.quantity, 0));
 	const title = $derived(handle === 'bag' ? 'Your bag' : product?.title ?? (handle ? $catalog.loading ? 'Loading item' : $catalog.error ? 'Item could not load' : 'Item unavailable' : 'Shop'));
 
@@ -53,9 +53,9 @@
 			<ShopHeading label="Merch" level="h1" />
 			<p class="intro">For the road, the jam, and the everyday.</p>
 			{#if $catalog.products.length}
-				<div class="catalog-meta"><p>{$catalog.products.length} items</p><p>Prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p></div>
+				<div class="catalog-meta"><p>{$groupedProducts.length} items</p><p>Prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p></div>
 				<div class="product-grid">
-					{#each $catalog.products as item (item.id)}<ProductCard product={item} />{/each}
+					{#each $groupedProducts as item (item.id)}<ProductCard product={item} />{/each}
 				</div>
 			{:else if $catalog.loading}
 				<ShopNotice title="Loading the shop" message="Checking the latest merch." />
@@ -63,7 +63,7 @@
 				<ShopNotice title="No merch available" message="There are no items in the shop right now. Check back soon." actionLabel="Back to band" actionHref="/" />
 			{/if}
 		{:else if product}
-			{#key product.id}<ProductDetail {product} />{/key}
+			{#key `${product.id}:${handle}`}<ProductDetail {product} initialHandle={handle} />{/key}
 		{:else}
 			<ShopHeading label="Merch" level="h1" />
 			{#if $catalog.loading}

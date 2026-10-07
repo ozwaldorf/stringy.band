@@ -2,13 +2,13 @@
 	import { onMount } from 'svelte';
 	import ShopHeading from './ShopHeading.svelte';
 	import ProductCard from './ProductCard.svelte';
-	import { catalog, refreshCatalog } from './lib/catalog';
+	import { groupedProducts, refreshCatalog } from './lib/catalog';
 	import IconArrowRight from '~icons/carbon/arrow-right';
 
 	const featuredHandles = ['satb-t-shirt-mark-1-green-2', 'satb-trucker-hat-mark-1', 'satb-mug'];
 	const featured = $derived([
-		...featuredHandles.flatMap((handle) => $catalog.products.filter((product) => product.handle === handle)),
-		...$catalog.products.filter((product) => !featuredHandles.includes(product.handle))
+		...featuredHandles.flatMap((handle) => $groupedProducts.filter((product) => product.handle === handle)),
+		...$groupedProducts.filter((product) => !featuredHandles.includes(product.handle))
 	].filter((product) => product.available).slice(0, 3));
 
 	onMount(() => { void refreshCatalog().catch(() => {}); });
@@ -21,7 +21,7 @@
 			{#each featured as product (product.id)}<ProductCard {product} />{/each}
 		</div>
 	{/if}
-	<a class="shop-link" href="/shop">Shop all merch{#if $catalog.products.length}{' '}({$catalog.products.length}){/if}<IconArrowRight aria-hidden="true" /></a>
+	<a class="shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
 </section>
 
 <style>
