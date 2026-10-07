@@ -51,7 +51,6 @@
 			<ShopBag />
 		{:else if !handle}
 			<ShopHeading label="Merch" level="h1" />
-			<p class="intro">For the road, the jam, and the everyday.</p>
 			{#if $catalog.products.length}
 				<div class="catalog-meta"><p>{$groupedProducts.length} items</p><p>Prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p></div>
 				<div class="product-grid">
@@ -91,7 +90,6 @@
 	.brand { display: block; flex-shrink: 0; }
 	.brand img { display: block; width: 6rem; height: auto; }
 	main { flex: 1; padding-top: 1.75rem; }
-	.intro { text-align: center; margin: 0.5rem 0 1.5rem; color: var(--color-text-muted); font-size: 0.85rem; }
 	.catalog-meta { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-subtle); color: var(--color-text-muted); font-size: 0.75rem; }
 	.catalog-meta p { margin: 0; }
 	.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem 1.25rem; }

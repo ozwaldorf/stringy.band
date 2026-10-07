@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { prefersReducedMotion } from 'svelte/motion';
+	import { fade } from 'svelte/transition';
 	import { productPrice, type Product } from './lib/fourthwall';
 	import IconArrowRight from '~icons/carbon/arrow-right';
 	import ColorSwatch from './ColorSwatch.svelte';
@@ -14,6 +15,7 @@
 	const colors = $derived(productOptions(product)?.colors ?? []);
 	const previews = $derived(colors.flatMap(color => color.images?.[0] ? [{ name: color.name, image: color.images[0] }] : []));
 	const preview = $derived(previews.find(color => color.name === previewName) ?? previews[0]);
+	const previewImage = $derived(colors.length > 1 && preview ? preview.image : product.image);
 
 	$effect(() => {
 		if (!card) return;
@@ -48,7 +50,9 @@
 
 <a class="product" href={`/shop/${product.handle}`} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
 	<div class="image">
-		<img src={colors.length > 1 && preview ? preview.image : product.image} alt="" width="422" height="422" loading="lazy" />
+		{#key previewImage}
+			<img src={previewImage} alt="" width="422" height="422" loading="lazy" transition:fade={{ duration: prefersReducedMotion.current ? 0 : 320 }} />
+		{/key}
 		{#if colors.length > 1}
 			<div class="colors" role="img" aria-label={`Colors: ${colors.map(color => color.name).join(', ')}`}>
 				{#each colors as color (color.name)}
@@ -88,9 +92,11 @@
 	}
 
 	img {
+		position: absolute;
+		inset: 0.5rem;
 		display: block;
-		width: 100%;
-		height: 100%;
+		width: calc(100% - 1rem);
+		height: calc(100% - 1rem);
 		object-fit: contain;
 		transition: transform 150ms ease;
 	}
@@ -115,6 +121,7 @@
 
 	.colors {
 		position: absolute;
+		z-index: 1;
 		right: 0.5rem;
 		bottom: 0.5rem;
 		display: flex;
