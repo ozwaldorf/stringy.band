@@ -1,9 +1,10 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { parseIcal } from './src/lib/ical';
+import { buildJsonLd, jsonLdScript } from './src/lib/jsonld';
 import { fetchProducts as loadProducts, withProductPage, type Product } from './src/lib/fourthwall';
 import { fetchProductPage } from './src/lib/product-page';
 import { CHANNEL_ID, feedUrl, parseFeed } from './src/lib/youtube';
@@ -68,14 +69,25 @@ function fetchVideos(): Plugin {
 	};
 }
 
+function jsonLd(): Plugin {
+	return {
+		name: 'json-ld',
+		transformIndexHtml(html) {
+			const { shows } = JSON.parse(readFileSync(SHOWS_OUT, 'utf8'));
+			return html.replace('</head>', () => `\t${jsonLdScript(buildJsonLd(shows))}\n\t</head>`);
+		}
+	};
+}
+
 function spa404(): Plugin {
 	return {
 		name: 'spa-fallback-404',
 		apply: 'build',
 		closeBundle() {
 			const out = resolve('build');
-			copyFileSync(resolve(out, 'index.html'), resolve(out, '404.html'));
-			const source = readFileSync(resolve(out, 'index.html'), 'utf8');
+			const source = readFileSync(resolve(out, 'index.html'), 'utf8')
+				.replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/, '');
+			writeFileSync(resolve(out, '404.html'), source);
 			const { products } = JSON.parse(readFileSync(PRODUCTS_OUT, 'utf8')) as {
 				products: { handle: string; title: string }[];
 			};
@@ -152,7 +164,7 @@ function fetchProducts(): Plugin {
 }
 
 export default defineConfig({
-	plugins: [fetchShows(), fetchVideos(), fetchProducts(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
+	plugins: [fetchShows(), fetchVideos(), fetchProducts(), jsonLd(), svelte(), Icons({ compiler: 'svelte' }), spa404()],
 	build: {
 		outDir: 'build'
 	}

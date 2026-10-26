@@ -1,5 +1,6 @@
 export type Show = {
 	uid: string;
+	anchor: string;
 	start: Date;
 	end: Date;
 	summary: string;
@@ -47,9 +48,11 @@ function toShow(fields: Record<string, string>): Show {
 	const description = fields.DESCRIPTION ? unescape(fields.DESCRIPTION) : undefined;
 	const location = fields.LOCATION ? unescape(fields.LOCATION) : undefined;
 	const { venue, fullAddress, simpleAddress, cityState } = splitLocation(location);
+	const uid = fields.UID ?? crypto.randomUUID();
 
 	return {
-		uid: fields.UID ?? crypto.randomUUID(),
+		uid,
+		anchor: showAnchor(uid),
 		start: parseDate(fields.DTSTART),
 		end: parseDate(fields.DTEND ?? fields.DTSTART),
 		summary: unescape(fields.SUMMARY ?? ''),
@@ -120,4 +123,8 @@ function extractInstagram(description?: string): string | undefined {
 	if (!description) return;
 	const match = description.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s<>"]+/i);
 	return match?.[0].replace(/[).,;:!?]+$/, '');
+}
+
+function showAnchor(uid: string): string {
+	return `show-${uid.split('@')[0].replace(/[^A-Za-z0-9_-]/g, '')}`;
 }

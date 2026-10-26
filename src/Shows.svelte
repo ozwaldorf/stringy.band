@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount, tick } from 'svelte';
 	import IconLaunch from '~icons/carbon/launch';
 	import IconLocation from '~icons/carbon/location';
 	import IconInstagram from '~icons/carbon/logo-instagram';
@@ -17,6 +18,16 @@
 	const PAST_LIMIT = 5;
 	let pastExpanded = $state(false);
 	const visiblePast = $derived(pastExpanded ? past : past.slice(0, PAST_LIMIT));
+
+	onMount(() => {
+		const anchor = window.location.hash.slice(1);
+		if (!all.some((s) => s.anchor === anchor)) return;
+		if (past.slice(PAST_LIMIT).some((s) => s.anchor === anchor)) pastExpanded = true;
+		const scroll = () => document.getElementById(anchor)?.scrollIntoView({ block: 'center' });
+		void tick().then(scroll);
+		// Images and fonts above can shift the row once they load
+		if (document.readyState !== 'complete') window.addEventListener('load', scroll, { once: true });
+	});
 
 	const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 	const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short' });
@@ -78,7 +89,7 @@
 	{:else}
 		<ul>
 			{#each upcoming as show (show.uid)}
-				<li class="upcoming-row" class:flipped={isFlipped(show.uid)}>
+				<li id={show.anchor} class="upcoming-row" class:flipped={isFlipped(show.uid)}>
 					<div class="when">
 						<span class="date date-full">{formatDate(show.start)}</span>
 						<span class="date date-short">{formatDateShort(show.start)}</span>
@@ -121,7 +132,7 @@
 		<h2>Past</h2>
 		<ul class="past">
 			{#each visiblePast as show (show.uid)}
-				<li>
+				<li id={show.anchor}>
 					<div class="when">
 						<span class="date date-full">{formatDate(show.start)}</span>
 						<span class="date date-short">{formatDateShort(show.start)}</span>
