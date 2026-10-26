@@ -10,13 +10,25 @@ const musicGroup = {
 	'@type': 'MusicGroup',
 	'@id': GROUP_ID,
 	name: 'Stringy and the Beans',
-	description: 'Bluegrass Quintet from Upstate NY',
+	description: 'Bluegrass quintet from Saratoga Springs, NY.',
 	genre: 'Bluegrass',
+	foundingDate: '2026-03-28',
+	foundingLocation: {
+		'@type': 'Place',
+		name: 'Saratoga Springs, NY',
+		address: {
+			'@type': 'PostalAddress',
+			addressLocality: 'Saratoga Springs',
+			addressRegion: 'NY',
+			addressCountry: 'US'
+		}
+	},
 	url: SITE_URL,
-	logo: `${SITE_URL}logo.svg`,
+	logo: `${SITE_URL}preview.png`,
 	image: `${SITE_URL}preview.png`,
 	email: 'beans@stringy.band',
 	sameAs: [
+		'https://musicbrainz.org/artist/fab11068-2cdc-4b69-8288-cbafa2c889a3',
 		'https://www.instagram.com/stringyandthebeans',
 		'https://www.facebook.com/profile.php?id=61567240809186',
 		'https://www.youtube.com/@stringyandthebeans',
