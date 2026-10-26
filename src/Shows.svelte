@@ -149,8 +149,13 @@
 						{#if show.venue && !venueInSummary(show.summary, show.venue)}
 							<span class="venue">{show.venue}</span>
 						{/if}
-						{#if show.cityState}
-							<span class="city-state"><IconLocation />{show.cityState}</span>
+						{#if show.simpleAddress}
+							<a
+								class="address"
+								href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
+								target="_blank"
+								rel="noopener"
+							><IconLocation />{show.simpleAddress}</a>
 						{/if}
 					</div>
 				</li>
@@ -286,8 +291,7 @@
 		font-size: 0.95rem;
 	}
 
-	.address,
-	.city-state {
+	.address {
 		color: var(--color-text-subtle);
 		font-size: 0.85rem;
 	}
@@ -299,8 +303,7 @@
 		text-underline-offset: 2px;
 	}
 
-	a.address :global(svg),
-	.city-state :global(svg) {
+	a.address :global(svg) {
 		vertical-align: -0.25em;
 		margin-right: 0.25rem;
 	}
