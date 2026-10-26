@@ -31,6 +31,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

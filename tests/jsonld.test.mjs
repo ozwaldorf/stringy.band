@@ -55,11 +55,20 @@ test('escapes markup in the embedded script', () => {
 	assert.ok(!html.slice(0, -'</script>'.length).includes('</script>'));
 });
 
-test('links to the info page, then the flier, then the show on the homepage', () => {
-	const urls = buildJsonLd([
-		show({ url: 'https://venue.example/show', instagram: 'https://www.instagram.com/p/x/' }),
+test('links to the info page, then tickets, then the flier, then the show on the homepage', () => {
+	const tickets = 'https://www.bandsintown.com/t/1';
+	const events = buildJsonLd([
+		show({ url: 'https://venue.example/show', tickets, instagram: 'https://www.instagram.com/p/x/' }),
+		show({ tickets, instagram: 'https://www.instagram.com/p/x/' }),
 		show({ instagram: 'https://www.instagram.com/p/x/' }),
 		show()
-	], now)['@graph'].slice(1).map((event) => event.url);
-	assert.deepEqual(urls, ['https://venue.example/show', 'https://www.instagram.com/p/x/', 'https://stringy.band/#show-a']);
+	], now)['@graph'].slice(1);
+	assert.deepEqual(events.map((event) => event.url), [
+		'https://venue.example/show',
+		tickets,
+		'https://www.instagram.com/p/x/',
+		'https://stringy.band/#show-a'
+	]);
+	assert.deepEqual(events[0].offers, { '@type': 'Offer', url: tickets, availability: 'https://schema.org/InStock' });
+	assert.equal(events[2].offers, undefined);
 });

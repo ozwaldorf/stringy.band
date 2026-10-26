@@ -1,4 +1,4 @@
-import type { Show } from './ical';
+import type { Show } from './bandsintown';
 
 const SITE_URL = 'https://stringy.band/';
 
@@ -48,10 +48,13 @@ function musicEvent(show: ShowJson) {
 		endDate: show.end,
 		eventStatus: 'https://schema.org/EventScheduled',
 		eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-		url: show.url ?? show.instagram ?? `${SITE_URL}#${show.anchor}`,
+		url: show.url ?? show.tickets ?? show.instagram ?? `${SITE_URL}#${show.anchor}`,
 		image: `${SITE_URL}preview.png`,
 		performer: { '@id': GROUP_ID },
-		location: { '@type': 'Place', name: show.venue ?? show.location, address: postalAddress(show) }
+		location: { '@type': 'Place', name: show.venue ?? show.location, address: postalAddress(show) },
+		...(show.tickets
+			? { offers: { '@type': 'Offer', url: show.tickets, availability: 'https://schema.org/InStock' } }
+			: {})
 	};
 }
 

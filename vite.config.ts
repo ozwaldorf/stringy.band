@@ -3,14 +3,12 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig, type Plugin } from 'vite';
-import { parseIcal } from './src/lib/ical';
+import { fetchShows as loadShows } from './src/lib/bandsintown';
 import { buildJsonLd, jsonLdScript } from './src/lib/jsonld';
 import { fetchProducts as loadProducts, withProductPage, type Product } from './src/lib/fourthwall';
 import { fetchProductPage } from './src/lib/product-page';
 import { CHANNEL_ID, feedUrl, parseFeed } from './src/lib/youtube';
 
-const ICAL_URL =
-	'https://calendar.google.com/calendar/ical/c_7504b3e06e2470e78978542a5c985ab63b1520ebc3edc14db2555be3a0aece55%40group.calendar.google.com/public/basic.ics';
 const SHOWS_OUT = resolve('src/lib/shows.json');
 const VIDEOS_OUT = resolve('src/lib/videos.json');
 const PRODUCTS_OUT = resolve('src/lib/products.json');
@@ -18,9 +16,9 @@ const PRODUCTS_OUT = resolve('src/lib/products.json');
 function fetchShows(): Plugin {
 	async function run() {
 		try {
-			const res = await fetch(ICAL_URL);
-			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-			const shows = parseIcal(await res.text())
+			const appId = process.env.BANDSINTOWN_APP_ID;
+			if (!appId) throw new Error('BANDSINTOWN_APP_ID is not set');
+			const shows = (await loadShows(appId))
 				.sort((a, b) => a.start.getTime() - b.start.getTime())
 				.map((s) => ({ ...s, start: s.start.toISOString(), end: s.end.toISOString() }));
 			mkdirSync(dirname(SHOWS_OUT), { recursive: true });

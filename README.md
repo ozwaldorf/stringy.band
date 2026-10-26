@@ -17,6 +17,8 @@ npm run build
 
 Vite outputs a static bundle to `build/`, including shop routes and a `404.html` fallback.
 
+Shows are pulled from the Bandsintown API at build and dev-server startup, which needs `BANDSINTOWN_APP_ID` in the environment (an `.envrc` works with direnv). The deploy workflow reads it from the repository secret of the same name, and the daily scheduled build picks up new events.
+
 ```sh
 npm run check
 npm test

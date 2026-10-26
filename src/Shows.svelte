@@ -3,8 +3,9 @@
 	import IconLaunch from '~icons/carbon/launch';
 	import IconLocation from '~icons/carbon/location';
 	import IconInstagram from '~icons/carbon/logo-instagram';
+	import IconTicket from '~icons/carbon/ticket';
 	import data from './lib/shows.json';
-	import type { Show } from './lib/ical';
+	import type { Show } from './lib/bandsintown';
 
 	const all: Show[] = data.shows.map((s) => ({
 		...s,
@@ -108,8 +109,13 @@
 								rel="noopener"
 							><IconLocation />{show.simpleAddress}</a>
 						{/if}
-						{#if show.url || show.instagram}
+						{#if show.tickets || show.url || show.instagram}
 							<div class="links">
+								{#if show.tickets}
+									<a class="tickets-link" href={show.tickets} target="_blank" rel="noopener">
+										<IconTicket /> Tickets
+									</a>
+								{/if}
 								{#if show.url}
 									<a class="details-link" href={show.url} target="_blank" rel="noopener">
 										<IconLaunch /> Event Details
