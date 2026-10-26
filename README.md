@@ -1,6 +1,6 @@
 # stringy.band
 
-Website for the Stringy and the Beans Bluegrass Quartet
+Website for the Stringy and the Beans Bluegrass Quintet
 
 ## Develop
 

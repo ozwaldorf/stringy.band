@@ -10,7 +10,7 @@ const musicGroup = {
 	'@type': 'MusicGroup',
 	'@id': GROUP_ID,
 	name: 'Stringy and the Beans',
-	description: 'Bluegrass Quartet from Upstate NY',
+	description: 'Bluegrass Quintet from Upstate NY',
 	genre: 'Bluegrass',
 	url: SITE_URL,
 	logo: `${SITE_URL}logo.svg`,

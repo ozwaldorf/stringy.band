@@ -17,7 +17,7 @@
 	<img src="/logo.svg" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
-		<p>Upstate NY bluegrass quartet</p>
+		<p>Upstate NY bluegrass quintet</p>
 	</section>
 
 	<section class="socials-section" aria-label="Socials">
