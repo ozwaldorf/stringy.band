@@ -3,6 +3,7 @@
 	import IconYoutube from '~icons/carbon/logo-youtube';
 	import IconInstagram from '~icons/carbon/logo-instagram';
 	import IconTiktok from '~icons/simple-icons/tiktok';
+	import IconBandsintown from '~icons/simple-icons/bandsintown';
 	import IconFacebook from '~icons/carbon/logo-facebook';
 	import Shows from './Shows.svelte';
 	import Videos from './Videos.svelte';
@@ -20,9 +21,18 @@
 		<p>Upstate NY bluegrass quintet</p>
 	</section>
 
-	<section class="socials-section" aria-label="Socials">
-		<h1>Links</h1>
+	<section class="socials-section" aria-label="Follow us">
+		<h1>Follow Us</h1>
 		<nav class="socials">
+			<a
+				class="bandsintown"
+				href="https://www.bandsintown.com/a/15672469"
+				target="_blank"
+				rel="noopener"
+				aria-label="Bandsintown"
+			>
+				<IconBandsintown />
+			</a>
 			<a
 				class="instagram"
 				href="https://www.instagram.com/stringyandthebeans"
@@ -33,15 +43,6 @@
 				<IconInstagram />
 			</a>
 			<a
-				class="facebook"
-				href="https://www.facebook.com/profile.php?id=61567240809186"
-				target="_blank"
-				rel="noopener"
-				aria-label="Facebook"
-			>
-				<IconFacebook />
-			</a>
-			<a
 				class="youtube"
 				href="https://www.youtube.com/@stringyandthebeans"
 				target="_blank"
@@ -49,6 +50,15 @@
 				aria-label="YouTube"
 			>
 				<IconYoutube />
+			</a>
+			<a
+				class="facebook"
+				href="https://www.facebook.com/profile.php?id=61567240809186"
+				target="_blank"
+				rel="noopener"
+				aria-label="Facebook"
+			>
+				<IconFacebook />
 			</a>
 			<a
 				class="tiktok"
@@ -170,9 +180,9 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 2rem;
-		font-size: 2rem;
+		width: 2.5rem;
+		height: 2.5rem;
+		font-size: 2.5rem;
 		line-height: 0;
 		transition: color 120ms ease, transform 120ms ease;
 	}
@@ -190,6 +200,10 @@
 	}
 
 	.socials a.tiktok {
+		color: var(--gb-orange);
+	}
+
+	.socials a.bandsintown {
 		color: var(--gb-aqua);
 	}
 
@@ -197,7 +211,8 @@
 		transform: translateY(-2px);
 	}
 
-	.socials a.tiktok :global(svg) {
+	.socials a.tiktok :global(svg),
+	.socials a.bandsintown :global(svg) {
 		transform: scale(0.75);
 	}
 </style>

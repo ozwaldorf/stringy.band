@@ -20,7 +20,8 @@ const musicGroup = {
 		'https://www.instagram.com/stringyandthebeans',
 		'https://www.facebook.com/profile.php?id=61567240809186',
 		'https://www.youtube.com/@stringyandthebeans',
-		'https://www.tiktok.com/@stringyandthebeans'
+		'https://www.tiktok.com/@stringyandthebeans',
+		'https://www.bandsintown.com/a/15672469'
 	]
 };
 
