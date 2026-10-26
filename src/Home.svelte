@@ -30,6 +30,7 @@
 				target="_blank"
 				rel="noopener"
 				aria-label="Bandsintown"
+				title="Bandsintown"
 			>
 				<IconBandsintown />
 			</a>
@@ -39,6 +40,7 @@
 				target="_blank"
 				rel="noopener"
 				aria-label="Instagram"
+				title="Instagram"
 			>
 				<IconInstagram />
 			</a>
@@ -48,6 +50,7 @@
 				target="_blank"
 				rel="noopener"
 				aria-label="YouTube"
+				title="YouTube"
 			>
 				<IconYoutube />
 			</a>
@@ -57,6 +60,7 @@
 				target="_blank"
 				rel="noopener"
 				aria-label="Facebook"
+				title="Facebook"
 			>
 				<IconFacebook />
 			</a>
@@ -66,6 +70,7 @@
 				target="_blank"
 				rel="noopener"
 				aria-label="TikTok"
+				title="TikTok"
 			>
 				<IconTiktok />
 			</a>
@@ -200,7 +205,7 @@
 	}
 
 	.socials a.tiktok {
-		color: var(--gb-orange);
+		color: var(--gb-aqua-dim);
 	}
 
 	.socials a.bandsintown {
