@@ -9,6 +9,14 @@
 	import Videos from './Videos.svelte';
 	import ShopPreview from './ShopPreview.svelte';
 	import Footer from './Footer.svelte';
+
+	const lineup = [
+		['Guitar', 'Phoenix Stewart'],
+		['Bass(es)', 'Ossian Mapes'],
+		['Mandolin', 'Sydney Jorgensen'],
+		['Fiddle', 'Lake Isachsen'],
+		['Banjo', 'Clara Guilmette']
+	];
 </script>
 
 <svelte:head><title>Stringy and the Beans - Links and Upcoming Events</title></svelte:head>
@@ -18,7 +26,21 @@
 	<img src="/logo.svg" alt="Stringy and the Beans" />
 
 	<section class="about" aria-label="About">
-		<p>Upstate NY bluegrass quintet</p>
+		<p class="lead">Upstate NY bluegrass quintet</p>
+		<dl class="lineup">
+			{#each lineup as [instrument, name] (name)}
+				<dt>{instrument}</dt>
+				<dd>{name}</dd>
+			{/each}
+		</dl>
+		<p>
+			Since forming in March 2026, the band has played the GottaGetGon Folk Festival, S&amp;S Farm Brewery's
+			"Brewgrass" Festival, and venues all around the Capital Region.
+		</p>
+		<p>
+			Their influences include the Bluegrass Album Band, Tony Rice, Doc Watson, Rhonda Vincent, Ricky
+			Skaggs and David Grisman. They're currently recording original songs, many already debuted live at shows.
+		</p>
 	</section>
 
 	<section class="socials-section" aria-label="Follow us">
@@ -119,19 +141,79 @@
 	}
 
 	.about {
+		/* One ruled line; all text and spacing snap to it */
+		--line: 1.6rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
-		max-width: 28rem;
-		margin-top: 1rem;
+		gap: var(--line);
+		position: relative;
+		box-sizing: border-box;
+		width: min(34rem, 100%);
+		margin-top: 1.5rem;
+		/* Nudge text down so it sits just above each rule */
+		padding: calc(var(--line) + 0.3rem) 2rem calc(var(--line) - 0.3rem);
+		background-color: var(--gb-bg0-h);
+		background-image: repeating-linear-gradient(
+			transparent 0 calc(var(--line) - 1px),
+			var(--gb-bg1) calc(var(--line) - 1px) var(--line)
+		);
+		border-radius: 2px;
+		box-shadow:
+			0 1px 2px rgba(60, 56, 54, 0.15),
+			0 6px 16px rgba(60, 56, 54, 0.12);
+		transform: rotate(-1deg);
+	}
+
+	/* Tape strip */
+	.about::before {
+		content: '';
+		position: absolute;
+		top: -0.7rem;
+		left: 50%;
+		width: 6.5rem;
+		height: 1.4rem;
+		background: rgba(215, 153, 33, 0.35);
+		box-shadow: 0 1px 2px rgba(60, 56, 54, 0.12);
+		transform: translateX(-50%) rotate(2deg);
 	}
 
 	.about p {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 1.05rem;
-		line-height: 1.5;
+		font-size: 1rem;
+		line-height: var(--line);
+		text-align: left;
+	}
+
+	.about .lead {
+		color: var(--color-text);
+		font-size: 1.1rem;
+		text-align: center;
+		text-wrap: balance;
+	}
+
+	.lineup {
+		display: grid;
+		grid-template-columns: auto auto;
+		gap: 0 1rem;
+		margin: 0;
+	}
+
+	.lineup dt {
+		text-align: right;
+		color: var(--color-text-subtle);
+		font-size: 0.85rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		line-height: var(--line);
+	}
+
+	.lineup dd {
+		margin: 0;
+		text-align: left;
+		color: var(--color-text);
+		line-height: var(--line);
 	}
 
 	.contact {
