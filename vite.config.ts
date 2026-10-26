@@ -7,7 +7,7 @@ import { fetchShows as loadShows } from './src/lib/bandsintown';
 import { buildJsonLd, jsonLdScript } from './src/lib/jsonld';
 import { fetchProducts as loadProducts, withProductPage, type Product } from './src/lib/fourthwall';
 import { fetchProductPage } from './src/lib/product-page';
-import { CHANNEL_ID, feedUrl, parseFeed } from './src/lib/youtube';
+import { CHANNEL_ID, feedUrl, latestVideos, parseFeed } from './src/lib/youtube';
 
 const SHOWS_OUT = resolve('src/lib/shows.json');
 const VIDEOS_OUT = resolve('src/lib/videos.json');
@@ -46,7 +46,7 @@ function fetchVideos(): Plugin {
 		try {
 			const res = await fetch(feedUrl(CHANNEL_ID));
 			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-			const videos = parseFeed(await res.text());
+			const videos = latestVideos(parseFeed(await res.text()));
 			mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
 			writeFileSync(
 				VIDEOS_OUT,

@@ -3,16 +3,7 @@
 
 	const CYCLE_MS = 15_000;
 
-	function shuffle<T>(items: readonly T[]): T[] {
-		const out = items.slice();
-		for (let i = out.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[out[i], out[j]] = [out[j], out[i]];
-		}
-		return out;
-	}
-
-	const videos = shuffle(data.videos);
+	const videos = data.videos;
 
 	let index = $state(0);
 	let interacted = $state(false);
