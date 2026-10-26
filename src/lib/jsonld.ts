@@ -28,6 +28,7 @@ const musicGroup = {
 	image: `${SITE_URL}preview.png`,
 	email: 'beans@stringy.band',
 	sameAs: [
+		'https://www.wikidata.org/wiki/Q141882232',
 		'https://musicbrainz.org/artist/fab11068-2cdc-4b69-8288-cbafa2c889a3',
 		'https://www.instagram.com/stringyandthebeans',
 		'https://www.facebook.com/profile.php?id=61567240809186',
