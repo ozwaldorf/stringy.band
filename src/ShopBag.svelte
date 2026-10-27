@@ -67,12 +67,12 @@
 
 {#if lines.length}
 	<div class="bag-layout">
-		<ul class="bag-items">
+		<ul class="bag-items note">
 			{#each lines as line (line.variantId)}
 				<li>
 					<a class="item-image" href={`/shop/${line.product.handle}`} aria-label={line.product.title}><img src={variantImage(line.product, line.variantId)} alt="" width="110" height="110" /></a>
 					<div class="item-details">
-						<h2><a href={`/shop/${line.product.handle}`}>{line.product.title}</a></h2>
+						<h2><a href={`/shop/${line.product.handle}`}>{#each line.product.title.split(" ") as word, i}{i ? " " : ""}<span class="word">{word}</span>{/each}</a></h2>
 						<p>{line.variant.title}</p>
 						<p class="unit-price">{formatPrice(line.variant.price, line.variant.currency)} each</p>
 					</div>
@@ -88,7 +88,8 @@
 				</li>
 			{/each}
 		</ul>
-		<div class="bag-summary">
+		<div class="bag-summary note torn">
+			<span class="paper plain" aria-hidden="true"></span>
 			<h2>Order summary</h2>
 			{#if currencies.length === 1}
 				<p class="subtotal"><span>Subtotal</span><strong>{formatPrice(subtotal, currencies[0])} <span class="currency">{currencies[0]}</span></strong></p>
@@ -107,42 +108,56 @@
 {/if}
 
 <style>
-	.continue-link { display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.75rem 0; font-size: 0.8rem; }
-	.bag-layout { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; align-items: start; gap: 2.5rem; }
-	.bag-items { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-border-subtle); }
-	li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: start; gap: 0.6rem 1rem; padding: 1.25rem 0; border-bottom: 1px solid var(--color-border-subtle); }
-	.item-image { grid-row: 1 / 3; aspect-ratio: 1; background: var(--color-bg-subtle); }
+	.continue-link { align-self: center; display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.25rem 0 0; color: var(--color-text-subtle); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
+	.continue-link:hover { color: var(--color-link-hover); }
+	.bag-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 3rem; margin: 2.5rem 0 4rem; }
+	/* Items on a taped note, ruled off from each other */
+	.bag-items { list-style: none; margin: 0; padding: 0.75rem 1.75rem; transform: rotate(-0.4deg); --tape-tilt: 2deg; }
+	li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: start; gap: 0.6rem 1.25rem; padding: 1.25rem 0; border-bottom: 1px dashed var(--gb-bg2); }
+	li:last-child { border-bottom: 0; }
+	/* Photos stuck on like the product thumbnails */
+	.item-image { grid-row: 1 / 3; aspect-ratio: 1; padding: 0.25rem; background: var(--gb-bg0-h); box-shadow: 0 1px 2px rgba(60, 56, 54, 0.18), 0 3px 6px rgba(60, 56, 54, 0.1); transform: rotate(-1.5deg); transition: transform 120ms ease; }
+	li:nth-child(even) .item-image { transform: rotate(1.2deg); }
+	.item-image:hover { transform: rotate(0); }
 	img { display: block; width: 100%; height: 100%; object-fit: contain; }
-	h2 { font-size: 0.9rem; line-height: 1.45; font-weight: 600; text-transform: none; letter-spacing: 0; margin: 0 0 0.35rem; }
+	h2 { font-size: 0.95rem; line-height: 1.35; font-weight: 800; letter-spacing: 0.04em; margin: 0 0 0.35rem; }
 	h2 a { color: var(--color-text); text-decoration: none; }
-	h2 a:hover { color: var(--color-link-hover); text-decoration: underline; }
-	.item-details p { margin: 0.2rem 0; font-size: 0.75rem; color: var(--color-text-muted); }
-	.item-details .unit-price { font-size: 0.7rem; }
-	.item-actions { grid-column: 2 / -1; display: flex; align-items: center; gap: 1rem; }
-	.item-actions > button { font-size: 0.75rem; }
-	.quantity { display: inline-flex; align-items: center; border: 1px solid var(--color-border); border-radius: 2px; }
-	.quantity button { width: 2.75rem; height: 2.75rem; padding: 0; border: 0; background: transparent; color: var(--color-text); font: inherit; font-size: 1rem; cursor: pointer; }
-	.quantity button:hover:not(:disabled) { background: var(--color-bg-subtle); }
+	.word { white-space: nowrap; }
+	h2 a:hover { color: var(--color-link-hover); }
+	/* Variant labels match the bio lineup */
+	.item-details p { margin: 0.2rem 0; color: var(--color-text-subtle); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+	.item-details .unit-price { color: var(--color-text-muted); font-size: 0.75rem; font-weight: 400; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+	.item-actions { grid-column: 2 / -1; display: flex; align-items: center; gap: 1.25rem; }
+	.item-actions > button { color: var(--color-text-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
+	.item-actions > button:hover:not(:disabled) { color: var(--color-link-hover); }
+	/* Stepper styled like the size options */
+	.quantity { display: inline-flex; align-items: center; border: 1px solid var(--gb-bg2); border-radius: 2px; background: var(--gb-bg0-h); }
+	.quantity button { width: 2.75rem; height: 2.75rem; padding: 0; border: 0; background: transparent; color: var(--color-text-subtle); font: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+	.quantity button:hover:not(:disabled) { background: var(--gb-bg0-s); color: var(--color-link-hover); }
 	.quantity button:disabled { color: var(--color-text-faint); cursor: not-allowed; }
-	.quantity output { min-width: 1.75rem; text-align: center; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-	.line-total { margin: 0; padding-top: 0.1rem; text-align: right; white-space: nowrap; font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-	.bag-summary { padding: 1.5rem; background: var(--color-bg-subtle); }
-	.bag-summary h2 { margin-bottom: 1.25rem; }
-	.subtotal { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.85rem; margin: 0; }
-	.subtotal strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+	.quantity output { min-width: 1.75rem; text-align: center; font-size: 0.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.line-total { margin: 0; padding-top: 0.1rem; text-align: right; white-space: nowrap; font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	/* Summary on a torn receipt */
+	.bag-summary { padding: 2rem 1.75rem 1.75rem; box-sizing: border-box; transform: rotate(0.8deg); --tape-tilt: -3deg; }
+	.bag-summary h2 { margin: 0 0 1.25rem; color: var(--color-text-subtle); font-size: 0.9rem; letter-spacing: 0.14em; text-align: center; }
+	.subtotal { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding-top: 1rem; border-top: 1px dashed var(--gb-bg2); color: var(--color-text-subtle); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+	.subtotal strong { color: var(--color-text); font-size: 1.15rem; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 	.currency { font-weight: 400; font-size: 0.7rem; color: var(--color-text-muted); }
-	.checkout-note { font-size: 0.75rem; line-height: 1.6; color: var(--color-text-muted); margin: 0.6rem 0 1.25rem; }
-	.bag-summary .shop-button { width: 100%; }
+	.checkout-note { font-size: 0.75rem; line-height: 1.6; color: var(--color-text-muted); margin: 0.6rem 0 1.5rem; }
+	/* Same bold call to action as add to bag */
+	.bag-summary .shop-button { width: 100%; min-height: 3.25rem; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 	.secure-note { text-align: center; font-size: 0.75rem; color: var(--color-text-muted); margin: 0.75rem 0 0; }
 	@media (max-width: 850px) {
-		.bag-layout { grid-template-columns: 1fr; gap: 1.5rem; }
-		.bag-summary { width: 100%; max-width: 24rem; margin-left: auto; box-sizing: border-box; }
+		.bag-layout { grid-template-columns: 1fr; gap: 2.5rem; }
+		.bag-summary { width: 100%; max-width: 24rem; margin-left: auto; }
 	}
 	@media (max-width: 480px) {
-		li { grid-template-columns: 4rem minmax(0, 1fr) auto; column-gap: 0.75rem; }
-		h2 { font-size: 0.8rem; }
-		.line-total { font-size: 0.8rem; }
-		.item-actions { gap: 0.75rem; }
-		.bag-summary { max-width: none; padding: 1.25rem; }
+		.bag-layout { margin-top: 2rem; }
+		.bag-items { padding: 0.5rem 1.1rem; }
+		li { grid-template-columns: 4rem minmax(0, 1fr) auto; column-gap: 0.85rem; }
+		h2 { font-size: 0.85rem; }
+		.line-total { font-size: 0.9rem; }
+		.item-actions { gap: 0.85rem; }
+		.bag-summary { max-width: none; padding: 1.75rem 1.25rem 1.5rem; }
 	}
 </style>
