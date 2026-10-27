@@ -814,6 +814,8 @@
 	@media (min-width: 769px) {
 		.socials-section {
 			margin-top: 3.5rem;
+			/* More room under the header when the page settles on the links */
+			scroll-margin-top: 9.5rem;
 		}
 	}
 
