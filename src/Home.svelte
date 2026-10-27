@@ -25,24 +25,6 @@
 	<div class="content">
 	<img src="/logo.svg" alt="Stringy and the Beans" />
 
-	<section class="about" aria-label="About">
-		<p class="lead">Upstate NY bluegrass quintet</p>
-		<dl class="lineup">
-			{#each lineup as [instrument, name] (name)}
-				<dt>{instrument}</dt>
-				<dd>{name}</dd>
-			{/each}
-		</dl>
-		<p>
-			Since forming in March 2026, the band has played the GottaGetGon Folk Festival, S&amp;S Farm Brewery's
-			"Brewgrass" Festival, and venues all around the Capital Region.
-		</p>
-		<p>
-			Their influences include the Bluegrass Album Band, Tony Rice, Doc Watson, Rhonda Vincent, Ricky
-			Skaggs and David Grisman. They're currently recording original songs, many already debuted live at shows.
-		</p>
-	</section>
-
 	<section class="socials-section" aria-label="Follow us">
 		<h1>Follow Us</h1>
 		<nav class="socials">
@@ -97,6 +79,25 @@
 				<IconTiktok />
 			</a>
 		</nav>
+	</section>
+
+	<section class="about" aria-label="About">
+		<p class="lead">Upstate NY bluegrass quintet</p>
+		<dl class="lineup">
+			{#each lineup as [instrument, name] (name)}
+				<dt>{instrument}</dt>
+				<dd>{name}</dd>
+			{/each}
+		</dl>
+		<p>
+			Since forming in March 2026, the band has played the Green Mountain Bluegrass &amp; Roots Festival, the
+			GottaGetGon Folk Festival, S&amp;S Farm Brewery's "Brewgrass" Festival, and venues all around the
+			Capital Region.
+		</p>
+		<p>
+			Their influences include the Bluegrass Album Band, Tony Rice, Doc Watson, Rhonda Vincent, Ricky
+			Skaggs, David Grisman, and many more. They're currently recording original songs, many already debuted live at shows.
+		</p>
 	</section>
 
 	<Videos />
