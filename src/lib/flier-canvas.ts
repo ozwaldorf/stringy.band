@@ -35,17 +35,19 @@ const SCRIPT = '"Homemade Apple", cursive';
 const PRINT = '#fffdf5';
 const PRINT_INK = '#3c3836';
 
-export type Design = 'classic' | 'polaroid' | 'bigdate' | 'bigsquare' | 'ticket' | 'cassette' | 'strip' | 'shapes';
+export type Design = 'classic' | 'polaroid' | 'bigdate' | 'bigsquare' | 'ticket' | 'cassette' | 'strip' | 'shapes' | 'multishape';
 
-export const DESIGNS: { name: Design; label: string }[] = [
-	{ name: 'classic', label: 'Classic' },
-	{ name: 'polaroid', label: 'Polaroid' },
-	{ name: 'bigdate', label: 'Big date' },
-	{ name: 'bigsquare', label: 'Big date square' },
-	{ name: 'ticket', label: 'Ticket' },
-	{ name: 'cassette', label: 'Cassette' },
-	{ name: 'strip', label: 'Photo strip' },
-	{ name: 'shapes', label: 'Shapes' }
+// In the picker's order, kin sharing a group: the plain one, prints, card stock, cut-out shapes
+export const DESIGNS: { name: Design; label: string; group: string }[] = [
+	{ name: 'classic', label: 'Classic', group: 'plain' },
+	{ name: 'polaroid', label: 'Polaroid', group: 'print' },
+	{ name: 'strip', label: 'Photo strip', group: 'print' },
+	{ name: 'ticket', label: 'Ticket', group: 'card' },
+	{ name: 'cassette', label: 'Cassette', group: 'card' },
+	{ name: 'shapes', label: 'Shapes', group: 'shape' },
+	{ name: 'multishape', label: 'Multi shapes', group: 'shape' },
+	{ name: 'bigdate', label: 'Big date', group: 'shape' },
+	{ name: 'bigsquare', label: 'Big date square', group: 'shape' }
 ];
 
 // Cut-outs for the photo in the shapes layout, each with the height it takes at full width
@@ -80,6 +82,9 @@ export type FlierArt = Frame & {
 	frames: Frame[];
 	design: Design;
 	shape: Shape;
+	// The second photo's in the multi shapes layout
+	secondShape: Shape;
+	secondShapeScale: number;
 	// The shape's size, 1 its largest
 	shapeScale: number;
 	// The polaroid print's height against all the room it has
@@ -762,7 +767,8 @@ const LAYOUTS: Record<Design, (s: Scene) => FlierLayout> = {
 	ticket,
 	cassette,
 	strip,
-	shapes
+	shapes,
+	multishape
 };
 
 // The shapes a layout takes; a shape outside them falls back to the first
@@ -1323,14 +1329,14 @@ function shapes(s: Scene): FlierLayout {
 		{ x: tx, bottom: when.top - 30, align: 'center', maxWidth }
 	);
 	if (where.text.venue) where.text.venue.wrap = true;
-	// The tagline sits centred over the details, lifting the logo when there is one
+	// The tagline tucks under the logo, lifting it by the tagline's lines when there is one
 	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
-	const baseline = where.top - 30;
+	const taglineLines = Math.max(1, fields.tagline.split('\n').filter((part) => part.trim()).length);
 	// A smaller shape gets a smaller logo with more air under it
 	const small = Math.max(0, 1 - size);
 	const logoWidth = 640 * Math.min(1, 0.55 + 0.45 * size);
 	const gap = 70 + small * 120;
-	const limit = showTagline ? baseline - 44 - (gap - 40) : where.top - gap;
+	const limit = where.top - gap - (showTagline ? 40 + (taglineLines - 1) * 58 : 0);
 	// Centred between the shape's foot and the text; a logo taller than the gap overlaps the shape, never the text
 	const logoH = logoHeight(s, logoWidth) * LOGO_VISUAL;
 	const logoY = Math.min(limit - logoH, (photo.y + photo.h + limit - logoH) / 2);
@@ -1347,7 +1353,7 @@ function shapes(s: Scene): FlierLayout {
 	ctx.stroke();
 	ctx.restore();
 	drawLogo(s, logoWidth, cx, logoY);
-	const tagline = drawTagline(s, tx, baseline, palette.accent, { maxWidth, center: true });
+	const tagline = drawTagline(s, cx + logoWidth * 0.15, logoY + logoH + 70, palette.accent, { maxWidth: logoWidth, center: true, down: true });
 	const qr = drawQr(s, WIDTH - PAD - qrSize / 2, HEIGHT - PAD - qrSize / 2, qrSize, palette.bg);
 	return { photo, qr, field: [WIDTH - 28, 420], text: { ...where.text, ...when.text, ...entry.text, tagline } };
 }
@@ -1413,4 +1419,105 @@ function pair(s: Scene, cx: number, baseline: number, maxWidth: number) {
 		}
 	}
 	return { top: baseline - size * 0.72, text };
+}
+
+// Two photos in opposite corners, each cut to a shape of its own; the logo, date and time fill the
+// top right, the venue, address, entry and QR code the bottom left. Each shape takes the width its
+// corner's text leaves and the height its text needs below or above it, and the text grows into
+// whatever room is left over.
+function multishape(s: Scene): FlierLayout {
+	const { ctx, palette, fields, art } = s;
+	const shapes = [art.shape, art.secondShape].map((name) => SHAPES.find((c) => c.name === name) ?? SHAPES[0]);
+	// Each text column's width; the shapes take the rest, less their outlines and a gutter
+	const [topWidth, footWidth] = [380, 420];
+	const scales = [art.shapeScale, art.secondShapeScale];
+	const qrSize = 230;
+	const footBottom = HEIGHT - PAD - (s.link ? qrSize + 40 : 0);
+	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
+	const taglineLines = Math.max(1, fields.tagline.split('\n').filter((part) => part.trim()).length);
+	const taglineRoom = showTagline ? 70 + (taglineLines - 1) * 58 : 0;
+
+	// The text at `grow` times its usual size, and how tall it sets
+	const whenAt = (grow: number) => {
+		const size = (n: number) => Math.round(n * grow);
+		return [
+			...wrap(ctx, fields.date, `800 ${size(50)}px ${FONT}`, topWidth, 3).map((part, i) =>
+				line(s, 'date', part, { size: size(50), weight: 800, color: palette.text, gap: i ? size(10) : 0, upper: true })
+			),
+			line(s, 'time', fields.time, { size: size(44), weight: 800, color: palette.accent, gap: size(16), upper: true })
+		];
+	};
+	const whereAt = (grow: number) => {
+		const size = (n: number) => Math.round(n * grow);
+		return [
+			...wrap(ctx, fields.venue, `800 ${size(54)}px ${FONT}`, footWidth, 3).map((part, i) =>
+				line(s, 'venue', part, { size: size(54), weight: 800, color: palette.accent, gap: i ? size(10) : 0, upper: true })
+			),
+			...addressLines(s, (i) => ({ size: size(30), weight: 500, color: palette.text, gap: size(i ? 14 : 22) })),
+			line(s, 'entry', fields.entry, { size: size(44), weight: 800, color: palette.accent, gap: size(24), upper: true })
+		];
+	};
+	const tall = (lines: Line[], width: number) => -stack(s, lines, { x: 0, bottom: 0, align: 'left', maxWidth: width, draw: false }).top;
+
+	// The logo heads the top right at a size of its own
+	const logoWidth = Math.min(topWidth, 440);
+	const logoBottom = PAD + logoHeight(s, logoWidth) * LOGO_VISUAL;
+	const topNeeds = logoBottom + 40 + tall(whenAt(1), topWidth) + taglineRoom;
+	const footNeeds = tall(whereAt(1), footWidth);
+
+	// Widths first, then held short enough to clear the text in the other corner
+	const fit = (i: number, w: number, maxH: number) => {
+		const ratio = shapes[i].round ? 1 : shapes[i].height / 600;
+		const width = Math.min(w, maxH / ratio) * scales[i];
+		return { w: width, h: width * ratio };
+	};
+	const a = fit(0, WIDTH - PAD * 2 - 32 - 48 - topWidth, footBottom - footNeeds - 48 - 16 - (PAD + 16));
+	const b = fit(1, WIDTH - PAD * 2 - 32 - 48 - footWidth, HEIGHT - PAD - 16 - (topNeeds + 48 + 16));
+	// Inset by the outline drawn round each
+	const frames = [
+		{ x: PAD + 16, y: PAD + 16, ...a },
+		{ x: WIDTH - PAD - 16 - b.w, y: HEIGHT - PAD - 16 - b.h, ...b }
+	];
+	frames.forEach((box, i) => {
+		fillPhoto(s, box, () => shapePath(ctx, shapes[i].name, box), art.frames[i] ?? art);
+		ctx.save();
+		ctx.strokeStyle = palette.accent;
+		ctx.lineWidth = 4;
+		ctx.globalAlpha = 0.85;
+		shapePath(ctx, shapes[i].name, { x: box.x - 16, y: box.y - 16, w: box.w + 32, h: box.h + 32 });
+		ctx.stroke();
+		ctx.restore();
+	});
+
+	// The largest text that still clears the shape in its corner
+	const grown = (at: (grow: number) => Line[], width: number, room: number) => {
+		let grow = 1.6;
+		while (grow > 1 && tall(at(grow), width) > room) grow -= 0.05;
+		return { lines: at(grow), grow };
+	};
+
+	// Top right: the logo, the date and time right aligned under it, the tagline under them
+	const right = WIDTH - PAD;
+	drawLogo(s, logoWidth, right - topWidth / 2, PAD);
+	const top = grown(whenAt, topWidth, frames[1].y - 16 - 48 - taglineRoom - (logoBottom + 40));
+	const whenBottom = logoBottom + 40 + tall(top.lines, topWidth);
+	const when = stack(s, top.lines, { x: right, bottom: whenBottom, align: 'right', maxWidth: topWidth });
+	if (when.text.date) when.text.date.wrap = true;
+	const tagline = drawTagline(s, right, whenBottom + 70, palette.accent, {
+		maxWidth: topWidth, size: Math.round(32 * Math.min(top.grow, 1.3)), down: true
+	});
+
+	// Bottom left: the venue, address and entry, set down on the QR code
+	const foot = grown(whereAt, footWidth, footBottom - (frames[0].y + a.h + 16 + 48));
+	const where = stack(s, foot.lines, { x: PAD, bottom: footBottom, align: 'left', maxWidth: footWidth });
+	if (where.text.venue) where.text.venue.wrap = true;
+	const qr = drawQr(s, PAD + qrSize / 2, HEIGHT - PAD - qrSize / 2, qrSize, palette.bg);
+	return {
+		photo: frames[0],
+		frames,
+		qr,
+		field: [WIDTH - 28, HEIGHT / 2],
+		fieldSpan: [PAD, HEIGHT - PAD],
+		text: { ...when.text, ...where.text, tagline }
+	};
 }

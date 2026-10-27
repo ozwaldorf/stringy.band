@@ -123,13 +123,18 @@
 	let shots = $state<Shot[]>([framed(photos[0].name), ...castShots(STRIP_MAX - 1).map(framed)]);
 	let uploads = $state<string[]>([]);
 	let stripCount = $state(4);
-	// The strip frame the photo settings and drags act on
+	// How many photos the layout shows, each in a frame of its own
+	const frameCount = $derived(design === 'strip' ? stripCount : design === 'multishape' ? 2 : 1);
+	// The frame the photo settings and drags act on
 	let sel = $state(0);
-	const frame = $derived(design === 'strip' ? sel : 0);
+	const frame = $derived(frameCount > 1 ? sel : 0);
 	const shot = $derived(shots[frame]);
 	let shape = $state<Shape>('arch');
+	// The second photo's shape in the multi shapes layout
+	let secondShape = $state<Shape>('circle');
 	// Shapes start at their largest
 	let shapeScale = $state(1);
+	let secondShapeScale = $state(1);
 	let printScale = $state(0.9);
 	let photoHeight = $state(PHOTO_HEIGHT);
 	let active = $state<Key | null>(null);
@@ -182,14 +187,26 @@
 	const tileBg = $derived(QR_TILES.find((t) => t.name === qrTile)?.bg ?? null);
 	// The code already sits on a tile coloured background, so no tile choice changes it
 	const tileless = $derived(!!layout && QR_TILES.some((t) => t.bg === layout!.qr.behind));
-	// The picker's photos by folder; outside the strip, group shots and whatever the photo is now
+	// The picker's photos by folder; with one photo, group shots and whatever the photo is now
 	const photoGroups = $derived.by(() => {
-		const pool = design === 'strip' ? allPhotos : photos.concat(allPhotos.filter((p) => p.name === shot.name && !photos.includes(p)));
+		const pool = frameCount > 1 ? allPhotos : photos.concat(allPhotos.filter((p) => p.name === shot.name && !photos.includes(p)));
 		return [...new Set(pool.map((p) => folder(p.name)))].map((f) => ({
 			label: f[0].toUpperCase() + f.slice(1),
 			photos: pool.filter((p) => folder(p.name) === f)
 		}));
 	});
+	// The shape and size the photo settings show and set: the second photo's in the multi shapes layout
+	const frameShape = $derived(design === 'multishape' && frame === 1 ? secondShape : shape);
+	function setFrameShape(name: Shape) {
+		if (design === 'multishape' && frame === 1) secondShape = name;
+		else shape = name;
+	}
+	const frameScale = $derived(design === 'multishape' && frame === 1 ? secondShapeScale : shapeScale);
+	function setFrameScale(value: number) {
+		if (design === 'multishape' && frame === 1) secondShapeScale = value;
+		else shapeScale = value;
+	}
+
 	// The box the photo settings and drags act on
 	const photoBox = $derived(layout && (layout.frames?.[frame] ?? layout.photo));
 	// Flier pixels to preview pixels
@@ -233,7 +250,7 @@
 
 	async function pickRandom() {
 		const [roll, i] = [++rolls, frame];
-		const next = await nextPhoto(design === 'strip' ? allPhotos : photos, shots[i].name);
+		const next = await nextPhoto(frameCount > 1 ? allPhotos : photos, shots[i].name);
 		if (roll === rolls) shots[i] = framed(next.name);
 	}
 
@@ -249,7 +266,9 @@
 		const ranked = tone ? palettesFor(grade && lut ? lutColor(tone, lut) : tone).filter((p) => p.name !== paletteName) : others;
 		design = pick(DESIGNS.filter((d) => d.name !== design)).name;
 		shape = pick(LAYOUT_SHAPES[design] ?? SHAPES.map((c) => c.name));
+		secondShape = pick(SHAPES.filter((c) => c.name !== shape)).name;
 		shapeScale = 1;
+		secondShapeScale = 1;
 		qrTile = pick(QR_TILES.filter((t) => t.bg)).name;
 		paletteName = pick(ranked.slice(0, 3)).name;
 		shots = [framed(next.name), ...cast.map(framed)];
@@ -266,7 +285,7 @@
 	}
 
 	$effect(() => {
-		if (sel >= stripCount) sel = stripCount - 1;
+		if (sel >= frameCount) sel = frameCount - 1;
 	});
 
 	$effect(() => {
@@ -289,6 +308,11 @@
 				observer.disconnect();
 			};
 		};
+	}
+
+	// A press anywhere but the flier and its settings lets go of whatever is selected
+	function deselect(event: PointerEvent) {
+		if (!(event.target as Element).closest('.sheet, .callout, .panel, .toolbar')) active = null;
 	}
 
 	function openCallout(key: Key) {
@@ -318,7 +342,7 @@
 
 	// Every photo on show; a random pick has usually loaded its own ahead
 	$effect(() => {
-		for (const { name } of shots.slice(0, design === 'strip' ? stripCount : 1)) {
+		for (const { name } of shots.slice(0, frameCount)) {
 			load(name).then(
 				() => (error = ''),
 				() => (error = 'That photo could not be loaded.')
@@ -368,11 +392,13 @@
 					...art,
 					design,
 					shape,
+					secondShape,
 					shapeScale,
+					secondShapeScale,
 					printScale,
 					height: photoHeight,
 					...toFrame(shots[0]),
-					frames: design === 'strip' ? shots.slice(0, stripCount).map(toFrame) : []
+					frames: frameCount > 1 ? shots.slice(0, frameCount).map(toFrame) : []
 				},
 				isText(active) ? active : undefined
 			);
@@ -650,6 +676,7 @@
 	const SIZERS: Partial<Record<Design, { get: () => number; set: (v: number) => void; min: number; max: number; fromTop?: boolean }>> = {
 		classic: { get: () => photoHeight, set: (v) => (photoHeight = v), min: 420, max: 1100, fromTop: true },
 		shapes: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
+		multishape: { get: () => frameScale, set: setFrameScale, min: 0.5, max: 1 },
 		bigdate: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
 		bigsquare: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
 		polaroid: { get: () => printScale, set: (v) => (printScale = v), min: 0.6, max: 1 }
@@ -660,7 +687,7 @@
 	function startResize(event: PointerEvent) {
 		if (!layout || !sizer) return;
 		event.stopPropagation();
-		const box = layout.photo;
+		const box = photoBox ?? layout.photo;
 		const [cx, cy] = [box.x + box.w / 2, box.y + box.h / 2];
 		const reach = sizer.fromTop ? ([, y]: [number, number]) => y - box.y : ([x, y]: [number, number]) => Math.hypot(x - cx, y - cy);
 		resize = { reach, from: Math.max(1, reach(flierPoint(event))), start: sizer.get() };
@@ -762,7 +789,7 @@
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (active = null)} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (active = null)} onpointerdown={deselect} />
 
 {#snippet panel(key: Key)}
 	{#if key === 'photo'}
@@ -778,10 +805,12 @@
 					{/each}
 				</div>
 			</div>
+		{/if}
+		{#if frameCount > 1}
 			<div class="shape-group">
 				<span class="group-label">Frame</span>
 				<div class="tiles" role="radiogroup" aria-label="Frame to edit">
-					{#each { length: stripCount }, i (i)}
+					{#each { length: frameCount }, i (i)}
 						<label class="tile">
 							<input type="radio" autocomplete="off" name="strip-frame" value={i} bind:group={sel} />
 							<span>{i + 1}</span>
@@ -808,14 +837,22 @@
 			<label class="shop-button secondary upload">Upload<input type="file" accept="image/*" onchange={pickUpload} /></label>
 		</div>
 		<label class="check"><input type="checkbox" autocomplete="off" bind:checked={grade} /> Gruvbox colour grade</label>
-		{#if design === 'shapes' || LAYOUT_SHAPES[design]}
+		{#if design === 'shapes' || design === 'multishape' || LAYOUT_SHAPES[design]}
 			{#each [{ label: 'Portrait', round: false }, { label: 'Square', round: true }].filter((g) => SHAPES.some((c) => !!c.round === g.round && (LAYOUT_SHAPES[design]?.includes(c.name) ?? true))) as group (group.label)}
 				<div class="shape-group">
 					<span class="group-label">{group.label}</span>
 					<div class="shapes" role="radiogroup" aria-label={`${group.label} shapes`}>
 						{#each SHAPES.filter((c) => !!c.round === group.round) as c (c.name)}
 							<label class="shape" title={c.label}>
-								<input type="radio" autocomplete="off" name="photo-shape" value={c.name} bind:group={shape} aria-label={c.label} />
+								<input
+									type="radio"
+									autocomplete="off"
+									name="photo-shape"
+									value={c.name}
+									checked={frameShape === c.name}
+									onchange={() => setFrameShape(c.name)}
+									aria-label={c.label}
+								/>
 								<span>
 									<svg viewBox={c.round ? '0 0 24 24' : '0 0 24 30'} aria-hidden="true"><path d={SHAPE_ICONS[c.name]} /></svg>
 								</span>
@@ -824,7 +861,7 @@
 					</div>
 				</div>
 			{/each}
-			<label>Size <input type="range" autocomplete="off" min="0.5" max="1" step="0.01" bind:value={shapeScale} /></label>
+			<label>Size <input type="range" autocomplete="off" min="0.5" max="1" step="0.01" bind:value={() => frameScale, setFrameScale} /></label>
 		{/if}
 		{#if design === 'polaroid'}
 			<label>Height <input type="range" autocomplete="off" min="0.6" max="1" step="0.01" bind:value={printScale} /></label>
@@ -917,6 +954,12 @@
 			<rect x="18" y="3" width="15" height="7" rx="2" class="logo" />
 			<rect x="18" y="14" width="14" height="3" /><rect x="18" y="19" width="10" height="2" /><rect x="18" y="23" width="12" height="3" />
 			<rect x="26" y="36" width="7" height="7" rx="1" />
+		{:else if name === 'multishape'}
+			<path d="M3 23V11a7 7 0 0 1 14 0v12z" class="photo" />
+			<circle cx="26" cy="35" r="7" class="photo" />
+			<rect x="20" y="4" width="13" height="6" rx="2" class="logo" />
+			<rect x="22" y="13" width="11" height="3" /><rect x="26" y="18" width="7" height="2" />
+			<rect x="3" y="28" width="13" height="3" /><rect x="3" y="33" width="9" height="2" /><rect x="3" y="38" width="6" height="5" rx="1" />
 		{:else}
 			<path d="M10 26V12a8 8 0 0 1 16 0v14z" class="photo" />
 			<rect x="9" y="22" width="18" height="8" rx="3" class="logo" />
@@ -956,8 +999,8 @@
 
 {#snippet layoutPicker()}
 	<div class="layouts" role="radiogroup" aria-label="Layout">
-		{#each DESIGNS as d (d.name)}
-			<label class="layout" title={d.label}>
+		{#each DESIGNS as d, i (d.name)}
+			<label class="layout" class:group-start={i > 0 && DESIGNS[i - 1].group !== d.group} title={d.label}>
 				<input type="radio" autocomplete="off" name="layout" value={d.name} bind:group={design} aria-label={d.label} />
 				<span>{@render thumb(d.name)}</span>
 			</label>
@@ -1149,7 +1192,7 @@
 		justify-content: center;
 		gap: 0.75rem;
 		width: 100%;
-		max-width: 46rem;
+		max-width: 52rem;
 	}
 
 	.toolbar select.show {
@@ -1196,6 +1239,10 @@
 	.layout {
 		position: relative;
 		line-height: 0;
+	}
+
+	.layout.group-start {
+		margin-left: 0.5rem;
 	}
 
 	.layout input {
