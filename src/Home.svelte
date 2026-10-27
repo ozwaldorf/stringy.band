@@ -12,6 +12,7 @@
 	import { prefersReducedMotion } from 'svelte/motion';
 	import Shows from './Shows.svelte';
 	import Videos from './Videos.svelte';
+	import videoData from './lib/videos.json';
 	import ShopPreview from './ShopPreview.svelte';
 	import Footer from './Footer.svelte';
 
@@ -26,7 +27,8 @@
 	const sections = [
 		['follow', 'Links'],
 		['about', 'About'],
-		['videos', 'Videos'],
+		// The videos section is left out when the feed came back empty
+		...(videoData.videos.length ? [['videos', 'Videos']] : []),
 		['merch', 'Merch'],
 		['shows', 'Shows'],
 		['contact', 'Contact']
@@ -131,21 +133,21 @@
 	let slot = $state<HTMLElement>();
 	let menu = $state<HTMLElement>();
 	let sheet = $state<HTMLElement>();
-	let bar = $state<HTMLElement>();
 
 	// Shrink the landing logo into a slot beside the section links as the page
-	// scrolls; the slot opens in step, so both arrive when the menu docks
+	// scrolls; the slot opens in step, and both arrive as the landing sheet sticks
 	$effect(() => {
-		if (!logo || !sentinel || !slot || !menu || !sheet || !bar) return;
+		if (!logo || !sentinel || !slot || !menu || !sheet) return;
 		const nav = menu;
 		const paper = sheet;
-		const header = bar;
 		const el = logo;
 		const marker = sentinel;
 		const dockSlot = slot;
 		const wide = window.matchMedia('(min-width: 769px)');
 		let start = { left: 0, top: 0, width: 1, height: 1 };
 		let dock = 1;
+		// Scroll distance until the landing sheet sticks as the header
+		let stick = 1;
 		let dockLeft = 0;
 		let unit = 16;
 		let frame = 0;
@@ -162,6 +164,14 @@
 			// Open the slot fully for a moment to find where the logo lands
 			setSlot(1);
 			dockLeft = dockSlot.getBoundingClientRect().left;
+			// The sheet runs from the top of the page to the end of the landing (the
+			// first screen on desktop, the link list on phones) and sticks as the header
+			const lead = paper.parentElement!.getBoundingClientRect().top + window.scrollY;
+			const end = wide.matches ? Math.max(window.innerHeight, dock + 3.5 * unit) : nav.getBoundingClientRect().bottom + window.scrollY;
+			paper.style.setProperty('--sheet-lead', `${lead}px`);
+			paper.style.setProperty('--sheet-h', `${end}px`);
+			// The header is 3.5rem plus 0.5rem of top padding once docked
+			stick = Math.max(1, end - 4 * unit);
 			update();
 		};
 
@@ -181,20 +191,18 @@
 				dockSlot.style.width = '';
 				dockSlot.style.marginRight = '';
 				nav.style.removeProperty('--dock');
-				nav.style.removeProperty('--reach');
-				// Phones: one sheet from the top of the screen down past the list; its
-				// edge rises with the list and stops to become the bar
-				paper.style.setProperty('--sheet', `${Math.max(header.offsetHeight, nav.getBoundingClientRect().bottom)}px`);
+				nav.style.transform = '';
 				return;
 			}
 			el.classList.add('pinned');
 			el.style.left = `${start.left}px`;
 			el.style.top = `${start.top}px`;
-			const p = Math.min(1, Math.max(0, window.scrollY / dock));
+			const p = Math.min(1, Math.max(0, window.scrollY / stick));
 			setSlot(p);
 			nav.style.setProperty('--dock', String(p));
-			// Stretch the header paper up to the top of the screen while docking
-			nav.style.setProperty('--reach', `${Math.max(0, dock - window.scrollY)}px`);
+			// Sticky alone would pin the links as soon as they reach the top; hold them
+			// back so they travel in step with the logo and the sheet
+			nav.style.transform = `translateY(${dock * (1 - p) - Math.max(0, dock - window.scrollY)}px)`;
 			const height = 2.5 * unit;
 			const x = (dockLeft - start.left) * p;
 			// Docked logo sits 0.5rem down in the header plus the docked top padding
@@ -235,13 +243,13 @@
 
 <main id="top" tabindex="-1">
 	<div class="content">
+	<span class="paper landing-sheet" aria-hidden="true" bind:this={sheet}></span>
 	<a class="logo-link" href="#top" aria-label="Stringy and the Beans, back to top">
 		<img class="logo" src="/logo.svg" alt="Stringy and the Beans" bind:this={logo} />
 	</a>
 
 	<div class="menu-sentinel" bind:this={sentinel}></div>
-	<span class="paper mobile-sheet" aria-hidden="true" bind:this={sheet}></span>
-	<header class="mobile-bar" class:visible={menuGone} inert={!menuGone} bind:this={bar}>
+	<header class="mobile-bar" class:visible={menuGone} inert={!menuGone}>
 		<a class="mobile-logo" href="#top" aria-label="Stringy and the Beans, back to top">
 			<img src="/logo.svg" alt="" />
 		</a>
@@ -278,7 +286,6 @@
 	</header>
 
 	<nav class="menu" class:stuck class:gone={menuGone} aria-label="Sections" bind:this={menu}>
-		<span class="paper" aria-hidden="true"></span>
 		<span class="logo-slot" aria-hidden="true" bind:this={slot}></span>
 		{#each sections as [id, label] (id)}
 			<a href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>
@@ -451,15 +458,20 @@
 		padding: calc(var(--header-lift) * var(--dock, 0)) 1rem 0;
 	}
 
-	/* Before docking the sheet covers the whole screen; its torn edge rises
-	   from the bottom to the header as the page scrolls */
-	.menu .paper {
-		height: calc(
-			100% + var(--reach, 0px) + var(--tear) +
-				max(0px, 100vh - var(--reach, 0px) - 100%) * (1 - var(--dock, 0))
-		);
-		/* Pin the mottle to the screen so it holds still while the sheet resizes */
-		--mottle-size: 100% 100vh;
+	/* One sheet behind the landing and the header. It scrolls away with the
+	   page, texture and all, and sticks once its torn edge reaches the bottom of
+	   the header. It takes no room in the layout: the margins cancel its height
+	   and pull it up and out to the edges of the page. */
+	.landing-sheet {
+		position: sticky;
+		z-index: 9;
+		left: auto;
+		right: auto;
+		top: calc(3.5rem + var(--header-lift) - var(--sheet-h, 100vh));
+		align-self: stretch;
+		height: calc(var(--sheet-h, 100vh) + var(--tear));
+		margin: calc(-1 * var(--sheet-lead, 1rem)) calc(50% - 50vw)
+			calc(var(--sheet-lead, 1rem) - var(--sheet-h, 100vh) - var(--tear) - 1.5rem);
 	}
 
 
@@ -489,7 +501,6 @@
 		color: var(--color-link-hover);
 	}
 
-	.mobile-sheet,
 	.mobile-bar {
 		display: none;
 	}
@@ -527,21 +538,6 @@
 		/* An odd last link centers across both columns */
 		.menu a:last-of-type:nth-of-type(odd) {
 			grid-column: 1 / -1;
-		}
-
-		.menu .paper {
-			display: none;
-		}
-
-		/* One sheet behind the landing list and the bar: it sits under the logo
-		   and links, and its edge stops at the bar once they scroll away */
-		.mobile-sheet {
-			display: block;
-			position: fixed;
-			top: 0;
-			z-index: 9;
-			height: calc(var(--sheet, 3.5rem) + var(--tear));
-			--mottle-size: 100% 100vh;
 		}
 
 		/* Keep the logo above the sheet */
@@ -739,6 +735,13 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-top: 1.5rem;
+	}
+
+	/* Clear the landing sheet's torn edge on desktop */
+	@media (min-width: 769px) {
+		.socials-section {
+			margin-top: 3.5rem;
+		}
 	}
 
 	.socials-section h1 {
