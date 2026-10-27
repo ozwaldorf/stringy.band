@@ -138,7 +138,7 @@
 			bind:element={elements[print]}
 		/>
 	{/each}
-	<span class="corner-bean"><Bean which="a" size="4.25rem" /></span>
+	<span class="corner-bean"><Bean which="a" size="11.2cqi" /></span>
 </div>
 
 {#if held !== null && lifted !== null}
@@ -172,6 +172,8 @@
 	/* Three overlapping prints scattered down the column */
 	.band-photos {
 		position: relative;
+		/* Lets the corner bean size itself as a share of the collage */
+		container-type: inline-size;
 		width: min(38rem, 100%);
 		aspect-ratio: 1;
 		margin-bottom: 1rem;

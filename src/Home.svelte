@@ -29,7 +29,7 @@
 	];
 
 	const sections = [
-		['follow', 'Links'],
+		['follow', 'Socials'],
 		['about', 'About'],
 		// The videos section is left out when the feed came back empty
 		...(videoData.videos.length ? [['videos', 'Videos']] : []),
@@ -400,7 +400,7 @@
 						<dd>{name}</dd>
 					{/each}
 				</dl>
-				<Bean which="b" size="3.5rem" class="beside" />
+				<Bean which="b" size="11.7cqi" class="beside" />
 			</div>
 			<p>
 				Since forming in March 2026, the band has played at the Green Mountain Bluegrass &amp; Roots Festival, the
@@ -736,6 +736,8 @@
 	.about-note {
 		/* One ruled line; all text and spacing snap to it */
 		--line: 1.6rem;
+		/* The bean beside the lineup sizes itself as a share of the note */
+		container-type: inline-size;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -759,7 +761,7 @@
 
 	.players :global(.beside) {
 		position: absolute;
-		left: calc(100% + 1.5rem);
+		left: calc(100% + 5cqi);
 		top: 50%;
 		transform: translateY(calc(-50% + 1.25rem)) rotate(8deg);
 	}
@@ -885,5 +887,18 @@
 	.socials a.tiktok :global(svg),
 	.socials a.bandsintown :global(svg) {
 		transform: scale(0.75);
+	}
+
+	/* A little smaller on phones, so all five fit on one row */
+	@media (max-width: 768px) {
+		.socials {
+			gap: 1rem;
+		}
+
+		.socials a {
+			width: 2.75rem;
+			height: 2.75rem;
+			font-size: 2.75rem;
+		}
 	}
 </style>

@@ -100,7 +100,7 @@
 					{/each}
 				</div>
 			</div>
-			<span class="frame-bean"><Bean which="b" size="4rem" /></span>
+			<span class="frame-bean"><Bean which="b" size="12.2cqi" /></span>
 		</div>
 		{#if videos.length > 1}
 			<div class="dots">
@@ -131,6 +131,8 @@
 
 	.frame {
 		position: relative;
+		/* The bean by the corner sizes itself as a share of the frame */
+		container-type: inline-size;
 		width: min(560px, 100%);
 		padding: 1.1rem;
 		border-radius: 6px;
@@ -150,6 +152,13 @@
 		bottom: -4rem;
 		transform: scaleX(-1) rotate(-12deg);
 		pointer-events: none;
+	}
+
+	/* The frame fills a phone screen, leaving no room beside it */
+	@media (max-width: 768px) {
+		.frame-bean {
+			display: none;
+		}
 	}
 
 	.mat {

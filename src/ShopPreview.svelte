@@ -4,7 +4,6 @@
 	import Bean from './Bean.svelte';
 	import ProductCard from './ProductCard.svelte';
 	import { groupedProducts, refreshCatalog } from './lib/catalog';
-	import IconArrowRight from '~icons/carbon/arrow-right';
 	import './lib/styles/shop.css';
 
 	const featuredHandles = ['satb-t-shirt-mark-1-green-2', 'satb-trucker-hat-mark-1', 'satb-mug'];
@@ -24,8 +23,8 @@
 		</div>
 	{/if}
 	<div class="shop-link-row">
-		<a class="shop-button shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
-		<span class="button-bean"><Bean which="a" size="3.75rem" /></span>
+		<a class="shop-button shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}</a>
+		<span class="button-bean"><Bean which="a" size="100%" /></span>
 	</div>
 </section>
 
@@ -57,9 +56,11 @@
 		margin: 2rem auto 0;
 	}
 
+	/* Sized as a share of the button, so it scales with it */
 	.button-bean {
 		position: absolute;
 		left: calc(100% + 0.75rem);
+		width: 22%;
 		bottom: -2.25rem;
 		transform: scaleX(-1) rotate(-4deg);
 		pointer-events: none;
@@ -82,6 +83,8 @@
 		section { --cols: 2; }
 		.products { gap: 1.25rem; }
 		.products > :global(.product:nth-child(n + 3)) { display: none; }
+		/* No room beside the button on a phone: smaller, and tucked onto its corner */
+		.button-bean { left: calc(100% - 1rem); width: 2.75rem; bottom: -1.75rem; }
 	}
 
 	@media (min-width: 769px) and (max-width: 1099px) {

@@ -104,6 +104,12 @@ section[id] {
 	--torn-edge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 14' preserveAspectRatio='none'%3E%3Cpath d='M0 0H400V6L400 6.0L384 6.4L379 10.9L374 9.2L367 9.7L362 8.6L358 3.7L353 3.1L348 9.9L338 11.0L328 11.0L318 4.2L310 7.1L305 8.7L300 12.0L296 4.4L290 3.7L281 4.0L271 10.2L265 6.0L259 8.3L254 9.4L248 11.5L240 7.5L233 8.7L225 10.8L218 11.2L213 8.5L206 6.0L200 6.3L195 6.7L190 7.6L180 9.0L174 6.3L170 11.2L165 6.8L158 8.0L153 3.5L143 9.6L136 11.4L130 6.9L124 4.4L118 10.5L112 6.4L102 11.2L94 8.8L86 11.3L79 4.1L70 11.3L63 9.2L59 9.3L51 6.4L46 10.4L38 9.2L31 9.8L22 6.0L15 9.6L10 5.6L0 6.0Z'/%3E%3C/svg%3E");
 }
 
+@media (max-width: 768px) {
+	:root {
+		--section-heading: 1.4rem;
+	}
+}
+
 /* Keep full-bleed paper from causing sideways scroll */
 html {
 	overflow-x: clip;
