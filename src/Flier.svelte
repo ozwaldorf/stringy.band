@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
 	import IconDownload from '~icons/carbon/download';
+	import IconShare from '~icons/carbon/share';
 	import logoArt from './lib/assets/logo.svg?raw';
 	import beanArt from './lib/assets/bean-a.svg?raw';
 	import lutUrl from './lib/assets/gruvbox-dark-hard-hald-12.png';
@@ -614,17 +615,42 @@
 		if (active === key) active = null;
 	}
 
-	async function download() {
+	// The finished flier as a PNG, with any editor closed so every line is drawn
+	async function flierPng(): Promise<File | undefined> {
 		active = null;
 		await tick();
-		canvas?.toBlob((blob) => {
-			if (!blob) return;
-			const a = document.createElement('a');
-			a.href = URL.createObjectURL(blob);
-			a.download = flierFilename(fields);
-			a.click();
-			setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-		}, 'image/png');
+		const blob = await new Promise<Blob | null>((resolve) => canvas?.toBlob(resolve, 'image/png') ?? resolve(null));
+		return blob ? new File([blob], flierFilename(fields), { type: 'image/png' }) : undefined;
+	}
+
+	async function download() {
+		const file = await flierPng();
+		if (!file) return;
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(file);
+		a.download = file.name;
+		a.click();
+		setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+	}
+
+	// Phones can hand the image straight to their share sheet; browsers that cannot share files get no button
+	const canShare = (() => {
+		try {
+			return !!navigator.canShare?.({ files: [new File([''], 'flier.png', { type: 'image/png' })] });
+		} catch {
+			return false;
+		}
+	})();
+
+	async function share() {
+		const file = await flierPng();
+		if (!file) return;
+		try {
+			await navigator.share({ files: [file], title: 'Stringy and the Beans' });
+		} catch (err) {
+			// Closing the share sheet is not a failure
+			if ((err as Error).name !== 'AbortError') fault = `Sharing failed: ${describe(err)}`;
+		}
 	}
 </script>
 
@@ -873,7 +899,10 @@
 				{/each}
 			</svg>
 		</button>
-		<button class="shop-button" type="button" onclick={download}><IconDownload /> Download</button>
+		{#if canShare}
+			<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
+		{/if}
+		<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
 	</div>
 
 	<!-- Phones skip the callouts: text is tapped on the flier, the rest is laid out here -->
@@ -1036,6 +1065,17 @@
 		cursor: pointer;
 	}
 
+	.icon-button.primary {
+		border-color: var(--color-accent);
+		background: var(--color-accent);
+		color: var(--color-surface);
+	}
+
+	.icon-button.primary:hover {
+		background: var(--color-link-hover);
+		border-color: var(--color-link-hover);
+	}
+
 	.icon-button:hover {
 		border-color: var(--color-accent);
 	}
@@ -1045,9 +1085,6 @@
 		height: 1.4rem;
 	}
 
-	.toolbar .shop-button {
-		gap: 0.4rem;
-	}
 
 	.stage {
 		--gutter: 13rem;
