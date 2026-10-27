@@ -33,7 +33,7 @@
 		<nav class="crumbs" aria-label="Breadcrumb">
 			<ol>
 				<li><a href="/#merch">Home</a></li>
-				<li>{#if handle}<a href="/shop">Merch</a>{:else}<span aria-current="page">Merch</span>{/if}</li>
+				<li>{#if handle}<a href="/shop" style:view-transition-name="merch-link">Merch</a>{:else}<span aria-current="page" style:view-transition-name="merch-link">Merch</span>{/if}</li>
 				{#if handle}<li class="here"><span aria-current="page">{handle === 'bag' ? 'Bag' : title}</span></li>{/if}
 			</ol>
 		</nav>
