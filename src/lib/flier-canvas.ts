@@ -35,7 +35,7 @@ const SCRIPT = '"Homemade Apple", cursive';
 const PRINT = '#fffdf5';
 const PRINT_INK = '#3c3836';
 
-export type Design = 'classic' | 'polaroid' | 'bigdate' | 'bigsquare' | 'ticket' | 'shapes';
+export type Design = 'classic' | 'polaroid' | 'bigdate' | 'bigsquare' | 'ticket' | 'cassette' | 'strip' | 'shapes';
 
 export const DESIGNS: { name: Design; label: string }[] = [
 	{ name: 'classic', label: 'Classic' },
@@ -43,6 +43,8 @@ export const DESIGNS: { name: Design; label: string }[] = [
 	{ name: 'bigdate', label: 'Big date' },
 	{ name: 'bigsquare', label: 'Big date square' },
 	{ name: 'ticket', label: 'Ticket' },
+	{ name: 'cassette', label: 'Cassette' },
+	{ name: 'strip', label: 'Photo strip' },
 	{ name: 'shapes', label: 'Shapes' }
 ];
 
@@ -64,8 +66,18 @@ export const SHAPES: { name: Shape; label: string; height: number; round?: boole
 // A shape at its largest is this much past its natural size
 const SHAPE_GROW = 1.25;
 
-export type FlierArt = {
+// A photo and how it sits in its frame
+export type Frame = {
 	photo?: CanvasImageSource & { width: number; height: number };
+	// 1 just covers the frame
+	zoom: number;
+	// Which part of the photo stays in frame, 0 to 1 across and down
+	pan: [number, number];
+};
+
+export type FlierArt = Frame & {
+	// The photo strip's frames, top to bottom
+	frames: Frame[];
 	design: Design;
 	shape: Shape;
 	// The shape's size, 1 its largest
@@ -74,12 +86,10 @@ export type FlierArt = {
 	printScale: number;
 	// How far down the flier the photo reaches in the classic layout
 	height: number;
-	// 1 just covers the frame
-	zoom: number;
-	// Which part of the photo stays in frame, 0 to 1 across and down
-	pan: [number, number];
 	logo: HTMLImageElement;
 	bean: HTMLImageElement;
+	// The logo's little bean
+	littleBean: HTMLImageElement;
 };
 
 export const FONTS = [`800 54px ${FONT}`, `500 30px ${FONT}`, `32px ${SCRIPT}`];
@@ -137,6 +147,8 @@ export type TextBox = Box & {
 
 export type FlierLayout = {
 	photo: Box;
+	// The photo strip's frames, each dragged on its own in place of `photo`
+	frames?: Box[];
 	qr: Box;
 	// A point of plain background, for the colour callout
 	field: [number, number];
@@ -263,13 +275,13 @@ export function photoCrop(photo: { width: number; height: number }, zoom: number
 }
 
 // The photo cropped to cover `box`, inside `clip` when given
-function fillPhoto({ ctx, art, palette }: Scene, box: Box, clip?: () => void) {
+function fillPhoto({ ctx, art, palette }: Scene, box: Box, clip?: () => void, frame: Frame = art) {
 	ctx.save();
 	if (clip) {
 		clip();
 		ctx.clip();
 	}
-	const { photo, zoom, pan: [x, y] } = art;
+	const { photo, zoom, pan: [x, y] } = frame;
 	if (photo) {
 		const { w, h } = photoCrop(photo, zoom, box.w, box.h);
 		ctx.drawImage(photo, (photo.width - w) * x, (photo.height - h) * y, w, h, box.x, box.y, box.w, box.h);
@@ -727,6 +739,8 @@ const LAYOUTS: Record<Design, (s: Scene) => FlierLayout> = {
 	bigdate: (s) => bigdate(s, false),
 	bigsquare: (s) => bigdate(s, true),
 	ticket,
+	cassette,
+	strip,
 	shapes
 };
 
@@ -985,16 +999,21 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 	};
 }
 
-// An admission ticket: logo and venue at its head, the picture under them, the stub's fields below the tear line
-function ticket(s: Scene): FlierLayout {
-	const { ctx, palette, fields } = s;
-	// On a dark field the ticket is cream, inked in the field's colour. On a light one it is white
-	// paper in the palette's own ink, its accent marking the venue, entry and stub.
+// Card stock for the ticket and cassette. On a dark field it is cream, inked in the field's colour.
+// On a light one it is white paper in the palette's own ink, its accent marking the key details.
+function stock(palette: Palette) {
 	const light = isLight(palette);
 	const paper = light ? PRINT : palette.text;
 	const ink = light ? palette.text : contrast(palette.bg, paper) >= 4.5 ? palette.bg : shade(palette.bg, 0.55);
 	const mark = light ? palette.accent : contrast(palette.bg, paper) >= 3 ? palette.bg : shade(palette.bg, 0.35);
-	const t = { x: 56, y: 40, w: WIDTH - 112, h: HEIGHT - 80 };
+	return { paper, ink, mark };
+}
+
+// An admission ticket: logo and venue at its head, the picture under them, the stub's fields below the tear line
+function ticket(s: Scene): FlierLayout {
+	const { ctx, palette, fields } = s;
+	const { paper, ink, mark } = stock(palette);
+	const t ={ x: 56, y: 40, w: WIDTH - 112, h: HEIGHT - 80 };
 	const tear = 980;
 
 	ctx.save();
@@ -1076,6 +1095,172 @@ function ticket(s: Scene): FlierLayout {
 		field: [WIDTH - 28, photo.y + 60],
 		photoAnchor: [photo.x + 28, photo.y + photo.h * 0.15],
 		text: Object.assign({ tagline }, head.text, ...rows)
+	};
+}
+
+// A cassette's insert opened flat: venue and date down the spine, the logo and venue head over
+// the photo on the front, and the rest set as its tracklist
+function cassette(s: Scene): FlierLayout {
+	const { ctx, palette, fields } = s;
+	const { paper, ink, mark } = stock(palette);
+	const c = { x: 56, y: 40, w: WIDTH - 112, h: HEIGHT - 80 };
+	const fold = c.x + 116;
+	const right = c.x + c.w;
+	const foot = c.y + c.h;
+
+	ctx.save();
+	ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+	ctx.shadowBlur = 30;
+	ctx.shadowOffsetY = 12;
+	ctx.fillStyle = paper;
+	roundRect(ctx, c.x, c.y, c.w, c.h, 12);
+	ctx.restore();
+	// The spine's fold, scored
+	ctx.save();
+	ctx.strokeStyle = ink;
+	ctx.globalAlpha = 0.35;
+	ctx.lineWidth = 3;
+	ctx.setLineDash([14, 10]);
+	ctx.beginPath();
+	ctx.moveTo(fold, c.y + 24);
+	ctx.lineTo(fold, foot - 24);
+	ctx.stroke();
+	ctx.restore();
+
+	// The spine reads bottom to top
+	ctx.save();
+	ctx.translate((c.x + fold) / 2, c.y + c.h / 2);
+	ctx.rotate(-Math.PI / 2);
+	labelFont(ctx, 34);
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.fillStyle = mark;
+	const spine = [fields.venue, fields.date].map((t) => t.trim().toUpperCase()).filter(Boolean).join('  /  ');
+	ctx.fillText(spine, 0, 0, c.h - 120);
+	ctx.restore();
+
+	const head = logoHead(s, { left: fold + 44, right: right - 44, top: c.y + 40, accent: mark, ink, ...HEAD_TYPE });
+
+	// The tracklist: each detail numbered like a song and ruled off, the QR code centred beside them
+	const tracks = [['A1', 'date'], ['A2', 'time'], ['B1', 'entry']] as const;
+	const rowGap = 74;
+	const last = foot - 64;
+	const first = last - (tracks.length - 1) * rowGap;
+	const qrSize = 250;
+	const qrCy = (first - 40 + last + 22) / 2;
+	const listRight = right - 44 - qrSize - 36;
+	const valueX = fold + 44 + Math.max(...tracks.map(([code]) => labelWidth(ctx, code))) + 28;
+	const rows = tracks.map(([code, key], i) => {
+		const baseline = first + i * rowGap;
+		drawLabel(ctx, code, fold + 44, baseline - 4, mark);
+		ctx.save();
+		ctx.strokeStyle = ink;
+		ctx.globalAlpha = 0.2;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(fold + 44, baseline + 22);
+		ctx.lineTo(listRight, baseline + 22);
+		ctx.stroke();
+		ctx.restore();
+		const row = stack(s, [line(s, key, fields[key], { size: 40, weight: 800, color: key === 'entry' ? mark : ink, gap: 0, upper: true })], {
+			x: valueX, bottom: baseline, align: 'left', maxWidth: listRight - valueX
+		}).text;
+		// Lines meet the track number rather than crossing it to the value
+		row[key]!.anchor = [fold + 30, baseline - 12];
+		return row;
+	});
+	const qr = drawQr(s, right - 44 - qrSize / 2, qrCy, qrSize, paper);
+
+	// The photo fills the front between the head and the tracklist
+	const photoTop = head.bottom + 44;
+	const photo = { x: fold + 36, y: photoTop, w: right - 36 - fold - 36, h: Math.min(first - 40, qrCy - qrSize / 2) - 48 - photoTop };
+	fillPhoto(s, photo, () => {
+		ctx.beginPath();
+		ctx.roundRect(photo.x, photo.y, photo.w, photo.h, 18);
+	});
+	const tagline = drawTagline(s, photo.x + photo.w - 24, photo.y + photo.h - 30, '#fbf1c7', { shadow: 'rgba(0, 0, 0, 0.8)' });
+	return {
+		photo,
+		qr,
+		field: [WIDTH - 28, HEIGHT / 2],
+		fieldSpan: [c.y, foot],
+		text: Object.assign({ tagline }, head.text, ...rows)
+	};
+}
+
+// A photo booth strip down the left, a square frame for each photo and the bean printed at its
+// foot; the logo, details and tagline down the right, the QR code under them
+function strip(s: Scene): FlierLayout {
+	const { ctx, palette, fields, art } = s;
+	const n = Math.max(1, art.frames.length);
+	const [border, gap, foot] = [24, 18, 120];
+	const height = HEIGHT - 80;
+	const side = (height - border - foot - gap * (n - 1)) / n;
+	const print = { x: PAD, y: 40, w: side + border * 2, h: height };
+	// Tilted about its middle; the frames' boxes stay upright, centred where each one lands
+	const angle = -0.035;
+	const [cx, cy] = [print.x + print.w / 2, print.y + print.h / 2];
+
+	ctx.save();
+	ctx.translate(cx, cy);
+	ctx.rotate(angle);
+	ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+	ctx.shadowBlur = 36;
+	ctx.shadowOffsetY = 14;
+	ctx.fillStyle = PRINT;
+	ctx.fillRect(-print.w / 2, -print.h / 2, print.w, print.h);
+	ctx.shadowColor = 'transparent';
+	const frames = Array.from({ length: n }, (_, i) => {
+		const local = { x: -print.w / 2 + border, y: -print.h / 2 + border + i * (side + gap), w: side, h: side };
+		fillPhoto(s, local, undefined, art.frames[i] ?? art);
+		const [x, y] = turn(cx, cy, angle, local.x + side / 2, local.y + side / 2);
+		return { x: x - side / 2, y: y - side / 2, w: side, h: side };
+	});
+	const bh = foot * 0.5;
+	const bw = (bh * art.littleBean.naturalWidth) / art.littleBean.naturalHeight;
+	ctx.drawImage(art.littleBean, -bw / 2, print.h / 2 - (foot + bh) / 2, bw, bh);
+	ctx.restore();
+
+	// Clear of the strip's lower right corner, which the tilt swings out
+	const left = print.x + print.w + 80;
+	const width = WIDTH - PAD - left;
+	const logoBottom = drawLogo(s, Math.min(width, 560), left + width / 2, 64);
+	// The details at `grow` times their usual size
+	const linesAt = (grow: number) => {
+		const size = (n: number) => Math.round(n * grow);
+		return [
+			...wrap(ctx, fields.venue, `800 ${size(54)}px ${FONT}`, width, 3).map((part, i) =>
+				line(s, 'venue', part, { size: size(54), weight: 800, color: palette.accent, gap: i ? size(10) : 0, upper: true })
+			),
+			...addressLines(s, (i) => ({ size: size(30), weight: 500, color: palette.text, gap: size(i ? 14 : 22) })),
+			...wrap(ctx, fields.date, `800 ${size(44)}px ${FONT}`, width, 2).map((part, i) =>
+				line(s, 'date', part, { size: size(44), weight: 800, color: palette.text, gap: size(i ? 10 : 34), upper: true })
+			),
+			line(s, 'time', fields.time, { size: size(44), weight: 800, color: palette.text, gap: size(12), upper: true }),
+			line(s, 'entry', fields.entry, { size: size(46), weight: 800, color: palette.accent, gap: size(22), upper: true })
+		];
+	};
+	const tall = (lines: Line[]) => -stack(s, lines, { x: left, bottom: 0, align: 'left', maxWidth: width, draw: false }).top;
+	// The type grows to fill the room between the logo and the QR code, less the tagline's when it has one
+	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
+	const top = logoBottom + 100;
+	const room = HEIGHT - PAD - QR_SIZE - 56 - top - (showTagline ? 100 : 0);
+	let grow = 1.8;
+	while (grow > 1 && tall(linesAt(grow)) > room) grow -= 0.05;
+	const lines = linesAt(grow);
+	const bottom = top + tall(lines);
+	const info = stack(s, lines, { x: left, bottom, align: 'left', maxWidth: width });
+	if (info.text.venue) info.text.venue.wrap = true;
+	if (info.text.date) info.text.date.wrap = true;
+	const tagline = drawTagline(s, WIDTH - PAD, bottom + 90, palette.accent, { maxWidth: width, size: Math.round(32 * Math.min(grow, 1.4)) });
+	const qr = drawQr(s, WIDTH - PAD - QR_SIZE / 2, HEIGHT - PAD - QR_SIZE / 2, QR_SIZE, palette.bg);
+	return {
+		photo: print,
+		frames,
+		qr,
+		field: [WIDTH - 28, HEIGHT / 2],
+		fieldSpan: [PAD, HEIGHT - PAD],
+		text: { ...info.text, tagline }
 	};
 }
 

@@ -4,6 +4,7 @@
 	import IconShare from '~icons/carbon/share';
 	import logoArt from './lib/assets/logo.svg?raw';
 	import beanArt from './lib/assets/bean-a.svg?raw';
+	import littleBeanArt from './lib/assets/bean-b.svg?raw';
 	import lutUrl from './lib/assets/gruvbox-dark-hard-hald-12.png';
 	import data from './lib/shows.json';
 	import type { Show } from './lib/bandsintown';
@@ -29,11 +30,12 @@
 		type Design,
 		type Shape,
 		type FlierArt,
+		type Frame,
 		type FlierLayout,
 		type Lut,
 		type TextKey
 	} from './lib/flier-canvas';
-	import { landscapePhotos, portraitPhotos } from './lib/photos';
+	import { landscapePhotos, portraitPhotos, type Photo } from './lib/photos';
 	import './lib/styles/shop.css';
 
 	type Key = TextKey | 'photo' | 'colour' | 'qr';
@@ -68,9 +70,24 @@
 		{ label: 'Past', shows: shows.filter((s) => s.end.getTime() < now).reverse() }
 	].filter((g) => g.shows.length);
 	const choices = groups.flatMap((g) => g.shows);
-	// Group shots only; the member folders hold solo portraits
-	const photos = [...landscapePhotos, ...portraitPhotos].filter((p) => p.name.startsWith('band/'));
-	const UPLOAD = 'upload';
+	const allPhotos = [...landscapePhotos, ...portraitPhotos];
+	const folder = (name: string) => name.split('/')[0];
+	// Group shots for the one photo layouts; the member folders hold solo portraits, which the strip takes too
+	const photos = allPhotos.filter((p) => folder(p.name) === 'band');
+	const members = [...new Set(allPhotos.map((p) => folder(p.name)))].filter((m) => m !== 'band');
+	const STRIP_MAX = 5;
+	const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
+	// A solo shot from each of `n` members, chosen at random
+	const castShots = (n: number) =>
+		[...members]
+			.sort(() => Math.random() - 0.5)
+			.slice(0, n)
+			.map((m) => pick(allPhotos.filter((p) => folder(p.name) === m)).name);
+	// A photo by its name, or an upload by its object URL, and how it sits in its frame
+	type Shot = { name: string; zoom: number; panX: number; panY: number };
+	// Framed afresh from its top, where the faces usually are
+	const framed = (name: string): Shot => ({ name, zoom: 1, panX: 0.5, panY: 0 });
+	const imageSrc = (name: string) => (name.startsWith('blob:') ? name : `/images/${name}.webp`);
 	// Rasterised at twice the drawn width so the logo stays crisp at full size
 	const LOGO_PIXELS = 1840;
 	const CALLOUT_GAP = 8;
@@ -100,17 +117,20 @@
 	);
 	let paletteName = $state('Teal');
 	let qrTile = $state(QR_TILES[0].name);
-	let photoName = $state(photos[0].name);
-	let uploadUrl = $state('');
 	let design = $state<Design>('classic');
+	// The first is the photo every layout shows; the strip shows as many as it has frames
+	let shots = $state<Shot[]>([framed(photos[0].name), ...castShots(STRIP_MAX - 1).map(framed)]);
+	let uploads = $state<string[]>([]);
+	let stripCount = $state(4);
+	// The strip frame the photo settings and drags act on
+	let sel = $state(0);
+	const frame = $derived(design === 'strip' ? sel : 0);
+	const shot = $derived(shots[frame]);
 	let shape = $state<Shape>('arch');
 	// Shapes start at their largest
 	let shapeScale = $state(1);
 	let printScale = $state(0.9);
 	let photoHeight = $state(PHOTO_HEIGHT);
-	let zoom = $state(1);
-	let panX = $state(0.5);
-	let panY = $state(0.4);
 	let active = $state<Key | null>(null);
 
 	let canvas = $state<HTMLCanvasElement>();
@@ -122,19 +142,21 @@
 	let stageHeight = $state(0);
 	// Phones open settings under the flier rather than over it
 	let narrow = $state(false);
-	let photo = $state.raw<HTMLImageElement>();
+	// Loaded photos by name
+	let images = $state.raw<Record<string, HTMLImageElement>>({});
+	const loads = new Map<string, Promise<HTMLImageElement>>();
+	// The photo the settings and drags act on
+	const photo = $derived(images[shot.name]);
 	// Photos recoloured with the Gruvbox LUT, graded once each
 	let grade = $state(true);
 	let lut = $state.raw<Lut>();
-	let graded = $state.raw<{ from: HTMLImageElement; canvas: HTMLCanvasElement }>();
 	const gradedCache = new WeakMap<HTMLImageElement, HTMLCanvasElement>();
-	// The plain photo stands in until its graded copy is ready
-	const shown = $derived(grade && graded && graded.from === photo ? graded.canvas : photo);
 	let bean = $state.raw<HTMLImageElement>();
+	let littleBean = $state.raw<HTMLImageElement>();
 	// Each tint of the logo, drawn once; keyed by the tinted art so a retuned tint draws afresh
 	const logos = new Map<string, Promise<HTMLImageElement>>();
 	let logo = $state.raw<{ tint: LogoTint; img: HTMLImageElement }>();
-	const art = $derived(bean && logo ? { bean, logo: logo.img } : undefined);
+	const art = $derived(bean && littleBean && logo ? { bean, littleBean, logo: logo.img } : undefined);
 	let layout = $state.raw<FlierLayout>();
 	let placed = $state.raw<{ tops: Partial<Record<Key, number>>; lines: { key: Key; points: string; x: number; y: number; empty: boolean }[] }>({
 		tops: {},
@@ -157,7 +179,16 @@
 	const visible = $derived(CALLOUTS.map((c) => ({ ...c, side: sideOf(c.key) })));
 	const palette = $derived(PALETTES.find((p) => p.name === paletteName) ?? PALETTES[0]);
 	const tileBg = $derived(QR_TILES.find((t) => t.name === qrTile)?.bg ?? null);
-	const photoSrc = $derived(photoName === UPLOAD ? uploadUrl : `/images/${photoName}.webp`);
+	// The picker's photos by folder; outside the strip, group shots and whatever the photo is now
+	const photoGroups = $derived.by(() => {
+		const pool = design === 'strip' ? allPhotos : photos.concat(allPhotos.filter((p) => p.name === shot.name && !photos.includes(p)));
+		return [...new Set(pool.map((p) => folder(p.name)))].map((f) => ({
+			label: f[0].toUpperCase() + f.slice(1),
+			photos: pool.filter((p) => folder(p.name) === f)
+		}));
+	});
+	// The box the photo settings and drags act on
+	const photoBox = $derived(layout && (layout.frames?.[frame] ?? layout.photo));
 	// Flier pixels to preview pixels
 	const k = $derived(sheetWidth / WIDTH);
 
@@ -166,42 +197,50 @@
 		if (show) fields = flierFields(show);
 	}
 
-	const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
-
-	// Another band photo, loaded and graded before anything changes, so it swaps in whole
-	let rolls = 0;
-	async function nextPhoto() {
-		const roll = ++rolls;
-		const name = pick(photos.filter((p) => p.name !== photoName)).name;
-		let img: HTMLImageElement | undefined;
-		try {
-			img = await loadImage(`/images/${name}.webp`);
-			if (grade && lut && !gradedCache.has(img)) gradedCache.set(img, applyLut(img, lut));
-		} catch {
-			img = undefined;
-		}
-		return roll === rolls ? { name, img } : undefined;
+	// The photo as drawn: graded once the grade is in, plain until then
+	function shown(name: string) {
+		const img = images[name];
+		if (!img || !grade || !lut) return img;
+		let canvas = gradedCache.get(img);
+		if (!canvas) gradedCache.set(img, (canvas = applyLut(img, lut)));
+		return canvas;
 	}
 
-	// Framed afresh from its top, where the faces usually are
-	function showPhoto({ name, img }: { name: string; img?: HTMLImageElement }) {
-		photoName = name;
-		if (img) photo = img;
-		zoom = 1;
-		panX = 0.5;
-		panY = 0;
+	// Loaded once each, and graded as it lands; callers handle a failure
+	function load(name: string) {
+		let loading = loads.get(name);
+		if (!loading) {
+			loading = loadImage(imageSrc(name)).then((img) => {
+				images = { ...images, [name]: img };
+				shown(name);
+				return img;
+			});
+			loading.catch(() => loads.delete(name));
+			loads.set(name, loading);
+		}
+		return loading;
+	}
+
+	// Another photo from `pool`, loaded and graded before anything changes, so it swaps in whole
+	let rolls = 0;
+	async function nextPhoto(pool: Photo[], current: string) {
+		const name = pick(pool.filter((p) => p.name !== current)).name;
+		return { name, img: await load(name).catch(() => undefined) };
 	}
 
 	async function pickRandom() {
-		const next = await nextPhoto();
-		if (next) showPhoto(next);
+		const [roll, i] = [++rolls, frame];
+		const next = await nextPhoto(design === 'strip' ? allPhotos : photos, shots[i].name);
+		if (roll === rolls) shots[i] = framed(next.name);
 	}
 
-	// A fresh look: layout, photo and QR code, and a colour picked to suit the photo as it will
-	// show after the grade; the text stays. All of it lands together once the photo is ready.
+	// A fresh look: layout, photos and QR code, and a colour picked to suit the photo as it will
+	// show after the grade; the text stays. All of it lands together once the photos are ready.
 	async function randomize() {
-		const next = await nextPhoto();
-		if (!next) return;
+		const roll = ++rolls;
+		const cast = castShots(STRIP_MAX - 1);
+		const [next] = await Promise.all([nextPhoto(photos, shots[0].name), ...cast.map((name) => load(name).catch(() => undefined))]);
+		if (roll !== rolls) return;
 		const others = PALETTES.filter((p) => p.name !== paletteName);
 		const tone = next.img && photoTone(next.img);
 		const ranked = tone ? palettesFor(grade && lut ? lutColor(tone, lut) : tone).filter((p) => p.name !== paletteName) : others;
@@ -210,16 +249,22 @@
 		shapeScale = 1;
 		qrTile = pick(QR_TILES.filter((t) => t.bg)).name;
 		paletteName = pick(ranked.slice(0, 3)).name;
-		showPhoto(next);
+		shots = [framed(next.name), ...cast.map(framed)];
+		stripCount = 3;
 	}
 
+	// Kept for the session, since any frame can show any upload
 	function pickUpload(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0];
 		if (!file) return;
-		if (uploadUrl) URL.revokeObjectURL(uploadUrl);
-		uploadUrl = URL.createObjectURL(file);
-		photoName = UPLOAD;
+		const url = URL.createObjectURL(file);
+		uploads = [...uploads, url];
+		shots[frame].name = url;
 	}
+
+	$effect(() => {
+		if (sel >= stripCount) sel = stripCount - 1;
+	});
 
 	$effect(() => {
 		const allowed = LAYOUT_SHAPES[design];
@@ -250,6 +295,7 @@
 
 	$effect(() => {
 		void svgImage(beanArt, 256).then((img) => (bean = img));
+		void svgImage(littleBeanArt, 256).then((img) => (littleBean = img));
 		// Every tint drawn up front, so a new colour never waits on its logo
 		for (const p of PALETTES) {
 			const svg = tintLogo(logoArt, p.logo);
@@ -267,17 +313,14 @@
 		narrow = stageWidth < MIN_SIDE_WIDTH || (failed?.design === design && stageWidth <= failed.width + 40);
 	});
 
+	// Every photo on show; a random pick has usually loaded its own ahead
 	$effect(() => {
-		const src = photoSrc;
-		if (!src) return;
-		// Already in hand when a random pick loaded it ahead
-		if (untrack(() => photo)?.src === new URL(src, location.href).href) return;
-		let current = true;
-		loadImage(src).then(
-			(img) => current && ((photo = img), (error = '')),
-			() => current && (error = 'That photo could not be loaded.')
-		);
-		return () => (current = false);
+		for (const { name } of shots.slice(0, design === 'strip' ? stripCount : 1)) {
+			load(name).then(
+				() => (error = ''),
+				() => (error = 'That photo could not be loaded.')
+			);
+		}
 	});
 
 	$effect(() => {
@@ -303,12 +346,7 @@
 		);
 	});
 
-	$effect(() => {
-		if (!grade || !lut || !photo) return;
-		let canvas = gradedCache.get(photo);
-		if (!canvas) gradedCache.set(photo, (canvas = applyLut(photo, lut)));
-		graded = { from: photo, canvas };
-	});
+	const toFrame = (s: Shot): Frame => ({ photo: shown(s.name), zoom: s.zoom, pan: [s.panX, s.panY] });
 
 	// A failure drawing shows on the page, which keeps working, rather than stopping the preview for good
 	let fault = $state('');
@@ -323,7 +361,16 @@
 				$state.snapshot(fields),
 				palette,
 				{ tile: tileBg },
-				{ ...art, design, shape, shapeScale, printScale, photo: shown, height: photoHeight, zoom, pan: [panX, panY] },
+				{
+					...art,
+					design,
+					shape,
+					shapeScale,
+					printScale,
+					height: photoHeight,
+					...toFrame(shots[0]),
+					frames: design === 'strip' ? shots.slice(0, stripCount).map(toFrame) : []
+				},
 				isText(active) ? active : undefined
 			);
 		} catch (err) {
@@ -347,7 +394,10 @@
 
 	// Where each leader line meets its element, in flier pixels
 	function anchor(key: Key, l: FlierLayout): [number, number] | undefined {
-		if (key === 'photo') return l.photoAnchor ?? [l.photo.x + 28, l.photo.y + l.photo.h * 0.3];
+		if (key === 'photo') {
+			const f = l.frames?.[frame];
+			return f ? [f.x + 28, f.y + f.h / 2] : (l.photoAnchor ?? [l.photo.x + 28, l.photo.y + l.photo.h * 0.3]);
+		}
 		if (key === 'colour') return l.field;
 		if (key === 'qr') return [l.qr.x + l.qr.w + 14, l.qr.y + l.qr.h / 2];
 		const box = l.text[key];
@@ -419,7 +469,7 @@
 	}
 
 	$effect(() => {
-		void [layout, active, visible, sheetWidth, stageWidth, stageHeight, narrow, qrTile, uploadUrl, error];
+		void [layout, active, visible, sheetWidth, stageWidth, stageHeight, narrow, qrTile, uploads, error, frame];
 		void tick().then(() => requestAnimationFrame(place));
 	});
 
@@ -438,11 +488,18 @@
 
 	// Moves the photo with the pointer, by screen pixels
 	function panBy(dx: number, dy: number) {
-		if (!photo || !layout) return;
-		const { w, h, scale } = photoCrop(photo, zoom, layout.photo.w, layout.photo.h);
+		if (!photo || !photoBox) return;
+		const { w, h, scale } = photoCrop(photo, shot.zoom, photoBox.w, photoBox.h);
 		const toPhoto = WIDTH / canvas!.getBoundingClientRect().width / scale;
-		if (photo.width > w) panX = clamp(panX - (dx * toPhoto) / (photo.width - w), 0, 1);
-		if (photo.height > h) panY = clamp(panY - (dy * toPhoto) / (photo.height - h), 0, 1);
+		if (photo.width > w) shot.panX = clamp(shot.panX - (dx * toPhoto) / (photo.width - w), 0, 1);
+		if (photo.height > h) shot.panY = clamp(shot.panY - (dy * toPhoto) / (photo.height - h), 0, 1);
+	}
+
+	// The photo under a point: a strip frame's index, 0 for the one photo elsewhere, or -1 for none
+	function frameAt(x: number, y: number) {
+		if (!layout) return -1;
+		if (layout.frames) return layout.frames.findIndex((b) => inside(b, x, y, 0));
+		return inside(layout.photo, x, y, 0) ? 0 : -1;
 	}
 
 	function flierPoint(event: MouseEvent): [number, number] {
@@ -465,6 +522,7 @@
 		// Drawn text wins over the empty slots that overlap it
 		const hits = (Object.keys(layout.text) as TextKey[]).filter((key) => inside(layout!.text[key]!, x, y));
 		const hit = hits.find((key) => !layout!.text[key]!.empty) ?? hits[0];
+		const at = frameAt(x, y);
 		if (hit) {
 			// Keeps focus on the editor that opens rather than the canvas
 			if (isText(hit)) {
@@ -476,7 +534,8 @@
 			}
 		} else if (inside(layout.qr, x, y, 0)) {
 			active = 'qr';
-		} else if (inside(layout.photo, x, y, 0) && photo) {
+		} else if (at >= 0 && images[shots[at].name]) {
+			if (layout.frames) sel = at;
 			drag = { x: event.clientX, y: event.clientY, moved: false };
 			canvas!.setPointerCapture(event.pointerId);
 		} else {
@@ -489,7 +548,7 @@
 		pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 		if (pinch && pointers.size === 2) {
 			const next = spread();
-			if (pinch.d > 0) zoom = clamp(zoom * (next.d / pinch.d), 1, 3);
+			if (pinch.d > 0) shot.zoom = clamp(shot.zoom * (next.d / pinch.d), 1, 3);
 			panBy(next.x - pinch.x, next.y - pinch.y);
 			pinch = next;
 			return;
@@ -533,9 +592,11 @@
 	}
 
 	function wheelZoom(event: WheelEvent) {
-		if (!photo || !layout || !inside(layout.photo, ...flierPoint(event), 0)) return;
+		const at = frameAt(...flierPoint(event));
+		if (at < 0 || !images[shots[at].name]) return;
 		event.preventDefault();
-		zoom = clamp(zoom * Math.exp(-event.deltaY * 0.002), 1, 3);
+		if (layout?.frames) sel = at;
+		shots[at].zoom = clamp(shots[at].zoom * Math.exp(-event.deltaY * 0.002), 1, 3);
 	}
 
 	// An editor over the text, set in the same type so the flier reads the same while typing
@@ -693,12 +754,40 @@
 
 {#snippet panel(key: Key)}
 	{#if key === 'photo'}
+		{#if design === 'strip'}
+			<div class="shape-group">
+				<span class="group-label">Photos</span>
+				<div class="tiles" role="radiogroup" aria-label="Photos in the strip">
+					{#each [3, 4, 5] as n (n)}
+						<label class="tile">
+							<input type="radio" autocomplete="off" name="strip-count" value={n} bind:group={stripCount} />
+							<span>{n}</span>
+						</label>
+					{/each}
+				</div>
+			</div>
+			<div class="shape-group">
+				<span class="group-label">Frame</span>
+				<div class="tiles" role="radiogroup" aria-label="Frame to edit">
+					{#each { length: stripCount }, i (i)}
+						<label class="tile">
+							<input type="radio" autocomplete="off" name="strip-frame" value={i} bind:group={sel} />
+							<span>{i + 1}</span>
+						</label>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		<label>
 			Photo
-			<select autocomplete="off" bind:value={photoName}>
-				{#if uploadUrl}<option value={UPLOAD}>Uploaded photo</option>{/if}
-				{#each photos as p (p.name)}
-					<option value={p.name}>{p.caption} ({p.name})</option>
+			<select autocomplete="off" bind:value={shots[frame].name}>
+				{#each uploads as url, i (url)}<option value={url}>Uploaded photo {i + 1}</option>{/each}
+				{#each photoGroups as group (group.label)}
+					<optgroup label={group.label}>
+						{#each group.photos as p (p.name)}
+							<option value={p.name}>{p.caption} ({p.name})</option>
+						{/each}
+					</optgroup>
 				{/each}
 			</select>
 		</label>
@@ -731,9 +820,9 @@
 		{#if design === 'classic'}
 			<label>Height <input type="range" autocomplete="off" min="420" max="1100" step="10" bind:value={photoHeight} /></label>
 		{/if}
-		<label>Zoom <input type="range" autocomplete="off" min="1" max="3" step="0.01" bind:value={zoom} /></label>
-		<label>Left to right <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={panX} /></label>
-		<label>Top to bottom <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={panY} /></label>
+		<label>Zoom <input type="range" autocomplete="off" min="1" max="3" step="0.01" bind:value={shots[frame].zoom} /></label>
+		<label>Left to right <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={shots[frame].panX} /></label>
+		<label>Top to bottom <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={shots[frame].panY} /></label>
 		{#if error}<p class="error" role="alert">{error}</p>{/if}
 	{:else if key === 'colour'}
 		{#each [{ label: 'Light', light: true }, { label: 'Dark', light: false }] as group (group.label)}
@@ -802,6 +891,20 @@
 			<rect x="5" y="12" width="26" height="10" rx="1" class="photo" />
 			<line x1="5" y1="31" x2="31" y2="31" stroke-dasharray="2 1.5" />
 			<rect x="5" y="35" width="12" height="2" /><rect x="5" y="39" width="9" height="2" /><rect x="25" y="34" width="6" height="6" rx="1" />
+		{:else if name === 'cassette'}
+			<rect x="3" y="1" width="30" height="43" rx="1" class="print" />
+			<line x1="8" y1="3" x2="8" y2="42" stroke-dasharray="2 1.5" />
+			<rect x="5" y="14" width="1.5" height="17" />
+			<rect x="11" y="4" width="10" height="5" rx="2" class="logo" /><rect x="23" y="5" width="8" height="2" />
+			<rect x="11" y="12" width="20" height="16" rx="1" class="photo" />
+			<rect x="11" y="32" width="10" height="2" /><rect x="11" y="36" width="8" height="2" /><rect x="11" y="40" width="9" height="2" />
+			<rect x="24" y="33" width="7" height="7" rx="1" />
+		{:else if name === 'strip'}
+			<rect x="2" y="1" width="12" height="43" class="print" />
+			{#each [3, 12, 21, 30] as y (y)}<rect x="4" {y} width="8" height="8" class="photo" />{/each}
+			<rect x="18" y="3" width="15" height="7" rx="2" class="logo" />
+			<rect x="18" y="14" width="14" height="3" /><rect x="18" y="19" width="10" height="2" /><rect x="18" y="23" width="12" height="3" />
+			<rect x="26" y="36" width="7" height="7" rx="1" />
 		{:else}
 			<path d="M10 26V12a8 8 0 0 1 16 0v14z" class="photo" />
 			<rect x="9" y="22" width="18" height="8" rx="3" class="logo" />
@@ -897,7 +1000,7 @@
 				onwheel={wheelZoom}
 			></canvas>
 			{#if layout && (active === 'photo' || active === 'qr')}
-				<div class="ring" style={ring(active === 'photo' ? layout.photo : layout.qr)}>
+				<div class="ring" style={ring(active === 'photo' ? (photoBox ?? layout.photo) : layout.qr)}>
 					{#if active === 'photo' && sizer}
 						{#each sizer.fromTop ? ['sw', 'se'] : ['nw', 'ne', 'sw', 'se'] as corner (corner)}
 							<span
@@ -976,12 +1079,22 @@
 </main>
 
 <style>
+	/* A dark page under light menus, so the flier is judged against dark surroundings */
+	:global(html:has(main.flier)) {
+		background-color: var(--gb-fg0);
+	}
+
 	.flier {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 1.5rem;
 		padding: 1.5rem 1rem 3rem;
+		/* A step darker than the site's, for the menus against the dark page */
+		--color-text: var(--gb-fg0);
+		--color-text-muted: var(--gb-fg1);
+		--color-text-subtle: var(--gb-fg2);
+		--color-text-faint: var(--gb-fg4);
 	}
 
 	.fault {
@@ -1493,22 +1606,23 @@
 		pointer-events: none;
 	}
 
+	/* Light lines with a dark halo, read on the dark page and over the flier alike */
 	.leaders polyline {
 		fill: none;
 		stroke-linejoin: round;
-		stroke: var(--color-text-subtle);
+		stroke: var(--gb-bg2);
 		stroke-width: 1;
 	}
 
 	.leaders polyline.halo {
-		stroke: var(--color-surface);
+		stroke: var(--gb-fg0);
 		stroke-width: 3;
 		stroke-opacity: 0.7;
 	}
 
 	.leaders circle {
-		fill: var(--color-text-subtle);
-		stroke: var(--color-surface);
+		fill: var(--gb-bg2);
+		stroke: var(--gb-fg0);
 		stroke-width: 1.5;
 	}
 
@@ -1517,17 +1631,17 @@
 	}
 
 	.leaders .empty circle {
-		fill: var(--color-surface);
-		stroke: var(--color-text-subtle);
+		fill: var(--gb-fg0);
+		stroke: var(--gb-bg2);
 	}
 
 	.leaders .active polyline:not(.halo) {
-		stroke: var(--color-accent);
+		stroke: #83a598;
 		stroke-width: 1.5;
 	}
 
 	.leaders .active circle {
-		fill: var(--color-accent);
+		fill: #83a598;
 	}
 
 	.swatches {
@@ -1712,6 +1826,10 @@
 		color: var(--color-text-subtle);
 		font-size: 0.75rem;
 		font-weight: 400;
+	}
+
+	.flier > .hint {
+		color: var(--gb-bg3);
 	}
 
 	.error {
