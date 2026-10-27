@@ -149,7 +149,8 @@ export type FlierLayout = {
 	photo: Box;
 	// The photo strip's frames, each dragged on its own in place of `photo`
 	frames?: Box[];
-	qr: Box;
+	// `behind` is what shows round the code without a tile
+	qr: Box & { behind: string };
 	// A point of plain background, for the colour callout
 	field: [number, number];
 	// Plain background runs down this stretch of the field's x, so its line can meet it level with the callout
@@ -666,8 +667,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 // The QR code centred on (cx, cy), turned by `angle`; `behind` is what shows through without a tile
-function drawQr(s: Scene, cx: number, cy: number, size: number, behind: string, angle = 0): Box {
-	const box = { x: cx - size / 2, y: cy - size / 2, w: size, h: size };
+function drawQr(s: Scene, cx: number, cy: number, size: number, behind: string, angle = 0): FlierLayout['qr'] {
+	const box = { x: cx - size / 2, y: cy - size / 2, w: size, h: size, behind };
 	if (!s.link) return box;
 	const { ctx, palette, art } = s;
 	// Quartile error correction: room for the bean over the middle, with coarser modules than high
@@ -1141,18 +1142,18 @@ function cassette(s: Scene): FlierLayout {
 
 	const head = logoHead(s, { left: fold + 44, right: right - 44, top: c.y + 40, accent: mark, ink, ...HEAD_TYPE });
 
-	// The tracklist: each detail numbered like a song and ruled off, the QR code centred beside them
-	const tracks = [['A1', 'date'], ['A2', 'time'], ['B1', 'entry']] as const;
+	// The tracklist: each detail captioned and ruled off, the QR code centred beside them
+	const tracks = ['date', 'time', 'entry'] as const;
 	const rowGap = 74;
 	const last = foot - 64;
 	const first = last - (tracks.length - 1) * rowGap;
 	const qrSize = 250;
 	const qrCy = (first - 40 + last + 22) / 2;
 	const listRight = right - 44 - qrSize - 36;
-	const valueX = fold + 44 + Math.max(...tracks.map(([code]) => labelWidth(ctx, code))) + 28;
-	const rows = tracks.map(([code, key], i) => {
+	const valueX = fold + 44 + Math.max(...tracks.map((key) => labelWidth(ctx, key.toUpperCase()))) + 28;
+	const rows = tracks.map((key, i) => {
 		const baseline = first + i * rowGap;
-		drawLabel(ctx, code, fold + 44, baseline - 4, mark);
+		drawLabel(ctx, key.toUpperCase(), fold + 44, baseline - 4, mark);
 		ctx.save();
 		ctx.strokeStyle = ink;
 		ctx.globalAlpha = 0.2;
@@ -1165,7 +1166,7 @@ function cassette(s: Scene): FlierLayout {
 		const row = stack(s, [line(s, key, fields[key], { size: 40, weight: 800, color: key === 'entry' ? mark : ink, gap: 0, upper: true })], {
 			x: valueX, bottom: baseline, align: 'left', maxWidth: listRight - valueX
 		}).text;
-		// Lines meet the track number rather than crossing it to the value
+		// Lines meet the caption rather than crossing it to the value
 		row[key]!.anchor = [fold + 30, baseline - 12];
 		return row;
 	});

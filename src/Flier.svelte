@@ -179,6 +179,8 @@
 	const visible = $derived(CALLOUTS.map((c) => ({ ...c, side: sideOf(c.key) })));
 	const palette = $derived(PALETTES.find((p) => p.name === paletteName) ?? PALETTES[0]);
 	const tileBg = $derived(QR_TILES.find((t) => t.name === qrTile)?.bg ?? null);
+	// The code already sits on a tile coloured background, so no tile choice changes it
+	const tileless = $derived(!!layout && QR_TILES.some((t) => t.bg === layout!.qr.behind));
 	// The picker's photos by folder; outside the strip, group shots and whatever the photo is now
 	const photoGroups = $derived.by(() => {
 		const pool = design === 'strip' ? allPhotos : photos.concat(allPhotos.filter((p) => p.name === shot.name && !photos.includes(p)));
@@ -848,8 +850,8 @@
 				{/each}
 			</dl>
 		{/if}
-		<!-- The polaroid's sticker is always cream -->
-		{#if design !== 'polaroid'}
+		<!-- The polaroid's sticker is always cream, and a tile on a background its own colour changes nothing -->
+		{#if design !== 'polaroid' && !tileless}
 			<div class="tiles" role="radiogroup" aria-label="QR background">
 				{#each QR_TILES as t (t.name)}
 					<label class="tile">
