@@ -47,7 +47,6 @@
 </script>
 
 <ShopHeading label="Your bag" level="h1" />
-<a class="continue-link" href="/shop">Continue shopping</a>
 
 {#if notice && notice.kind !== 'currency'}
 	<ShopNotice title={notice.title} message={notice.message} tone={notice.kind === 'error' ? 'error' : 'warning'}
@@ -67,27 +66,30 @@
 
 {#if lines.length}
 	<div class="bag-layout">
-		<ul class="bag-items note">
-			{#each lines as line (line.variantId)}
-				<li>
-					<a class="item-image" href={`/shop/${line.product.handle}`} aria-label={line.product.title}><img src={variantImage(line.product, line.variantId)} alt="" width="110" height="110" /></a>
-					<div class="item-details">
-						<h2><a href={`/shop/${line.product.handle}`}>{#each line.product.title.split(" ") as word, i}{i ? " " : ""}<span class="word">{word}</span>{/each}</a></h2>
-						<p>{line.variant.title}</p>
-						<p class="unit-price">{formatPrice(line.variant.price, line.variant.currency)} each</p>
-					</div>
-					<p class="line-total">{formatPrice(line.quantity * line.variant.price, line.variant.currency)}</p>
-					<div class="item-actions">
-						<div class="quantity" role="group" aria-label={`Quantity for ${line.product.title}, ${line.variant.title}`}>
-							<button type="button" disabled={checking || line.quantity <= 1} aria-label={`Decrease quantity for ${line.product.title}, ${line.variant.title}`} onclick={() => setQuantity(line.variantId, line.quantity - 1)}>-</button>
-							<output aria-live="polite" aria-label="Quantity">{line.quantity}</output>
-							<button type="button" disabled={checking || line.quantity >= 99} aria-label={`Increase quantity for ${line.product.title}, ${line.variant.title}`} onclick={() => setQuantity(line.variantId, line.quantity + 1)}>+</button>
+		<div class="bag-items note">
+			<ul>
+				{#each lines as line (line.variantId)}
+					<li>
+						<a class="item-image" href={`/shop/${line.product.handle}`} aria-label={line.product.title}><img src={variantImage(line.product, line.variantId)} alt="" width="110" height="110" /></a>
+						<div class="item-details">
+							<h2><a href={`/shop/${line.product.handle}`}>{#each line.product.title.split(" ") as word, i}{i ? " " : ""}<span class="word">{word}</span>{/each}</a></h2>
+							<p>{line.variant.title}</p>
+							<p class="unit-price">{formatPrice(line.variant.price, line.variant.currency)} each</p>
 						</div>
-						<button class="shop-text-button" disabled={checking} aria-label={`Remove ${line.product.title}, ${line.variant.title}`} onclick={() => removeFromCart(line.variantId)}>Remove</button>
-					</div>
-				</li>
-			{/each}
-		</ul>
+						<p class="line-total">{formatPrice(line.quantity * line.variant.price, line.variant.currency)}</p>
+						<div class="item-actions">
+							<div class="quantity" role="group" aria-label={`Quantity for ${line.product.title}, ${line.variant.title}`}>
+								<button type="button" disabled={checking || line.quantity <= 1} aria-label={`Decrease quantity for ${line.product.title}, ${line.variant.title}`} onclick={() => setQuantity(line.variantId, line.quantity - 1)}>-</button>
+								<output aria-live="polite" aria-label="Quantity">{line.quantity}</output>
+								<button type="button" disabled={checking || line.quantity >= 99} aria-label={`Increase quantity for ${line.product.title}, ${line.variant.title}`} onclick={() => setQuantity(line.variantId, line.quantity + 1)}>+</button>
+							</div>
+							<button class="shop-text-button" disabled={checking} aria-label={`Remove ${line.product.title}, ${line.variant.title}`} onclick={() => removeFromCart(line.variantId)}>Remove</button>
+						</div>
+					</li>
+				{/each}
+			</ul>
+			<div class="continue-row"><a class="continue" href="/shop">Continue shopping</a></div>
+		</div>
 		<div class="bag-summary note torn">
 			<span class="paper plain" aria-hidden="true"></span>
 			<h2>Order summary</h2>
@@ -108,13 +110,16 @@
 {/if}
 
 <style>
-	.continue-link { align-self: center; display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.25rem 0 0; color: var(--color-text-subtle); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
-	.continue-link:hover { color: var(--color-link-hover); }
 	.bag-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 3rem; margin: 2.5rem 0 4rem; }
 	/* Items on a taped note, ruled off from each other */
-	.bag-items { list-style: none; margin: 0; padding: 0.75rem 1.75rem; transform: rotate(-0.4deg); --tape-tilt: 2deg; }
+	.bag-items { padding: 0.75rem 1.75rem 0.75rem; transform: rotate(-0.4deg); --tape-tilt: 2deg; }
+	.bag-items ul { list-style: none; margin: 0; padding: 0; }
 	li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; align-items: start; gap: 0.6rem 1.25rem; padding: 1.25rem 0; border-bottom: 1px dashed var(--gb-bg2); }
 	li:last-child { border-bottom: 0; }
+	/* A last line on the list, back to the rest of the merch */
+	.continue-row { display: flex; justify-content: flex-end; padding-top: 0.75rem; border-top: 1px dashed var(--gb-bg2); }
+	.continue { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--color-text-subtle); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
+	.continue:hover { color: var(--color-link-hover); }
 	/* Photos stuck on like the product thumbnails */
 	.item-image { grid-row: 1 / 3; aspect-ratio: 1; padding: 0.25rem; background: var(--gb-bg0-h); box-shadow: 0 1px 2px rgba(60, 56, 54, 0.18), 0 3px 6px rgba(60, 56, 54, 0.1); transform: rotate(-1.5deg); transition: transform 120ms ease; }
 	li:nth-child(even) .item-image { transform: rotate(1.2deg); }

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import IconArrowLeft from '~icons/carbon/arrow-left';
 	import IconBag from '~icons/carbon/shopping-bag';
 	import ShopHeading from './ShopHeading.svelte';
 	import ProductCard from './ProductCard.svelte';
@@ -30,8 +29,14 @@
 	<header>
 		<span class="paper" aria-hidden="true"></span>
 		<a class="brand" href="/" aria-label="Stringy and the Beans home"><img src="/logo.svg" alt="" width="1000" height="700" /></a>
+		<nav class="crumbs" aria-label="Breadcrumb">
+			<ol>
+				<li><a href="/#merch">Home</a></li>
+				<li>{#if handle}<a href="/shop">Merch</a>{:else}<span aria-current="page">Merch</span>{/if}</li>
+				{#if handle}<li class="here"><span aria-current="page">{handle === 'bag' ? 'Bag' : title}</span></li>{/if}
+			</ol>
+		</nav>
 		<nav aria-label="Shop navigation">
-			<a class="back-link" href={handle && handle !== 'bag' ? '/shop' : '/#merch'}><IconArrowLeft aria-hidden="true" /> <span>{handle && handle !== 'bag' ? 'All merch' : 'Back to band'}</span></a>
 			<a class="bag-link" class:current={handle === 'bag'} href="/shop/bag" aria-current={handle === 'bag' ? 'page' : undefined} aria-label={`Bag, ${bagCount} item${bagCount === 1 ? '' : 's'}`}><IconBag /> Bag <span class="bag-count">{bagCount}</span></a>
 		</nav>
 	</header>
@@ -85,9 +90,17 @@
 	header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4rem; box-sizing: border-box; margin-top: -1rem; padding-top: 0.5rem; }
 	header .paper { left: calc(50% - 50vw); right: calc(50% - 50vw); }
 	nav { display: flex; align-items: center; gap: 1.5rem; }
-	/* Same type as the home section links */
-	.back-link, .bag-link { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; color: var(--color-text-subtle); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
-	.back-link:hover, .bag-link:hover, .bag-link.current { color: var(--color-link-hover); }
+	/* Trail back home and to the shop, in the same type as the home section links */
+	.crumbs { flex: 1; min-width: 0; }
+	.crumbs ol { display: flex; align-items: center; min-width: 0; margin: 0; padding: 0; list-style: none; }
+	.crumbs li { display: flex; align-items: center; flex: none; }
+	.crumbs li + li::before { content: '/'; margin: 0 0.6rem; color: var(--color-text-faint); font-weight: 400; }
+	/* The current item gives way first, trimmed rather than wrapped */
+	.crumbs .here { flex: 0 1 auto; min-width: 0; }
+	.crumbs a, .crumbs span, .bag-link { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; color: var(--color-text-subtle); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
+	.crumbs a:hover, .bag-link:hover, .bag-link.current { color: var(--color-link-hover); }
+	.crumbs span[aria-current] { color: var(--color-text); }
+	.crumbs .here span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 2.75rem; }
 	.bag-link { white-space: nowrap; }
 	.bag-count { min-width: 1.25rem; text-align: center; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 	.brand { display: block; flex-shrink: 0; }
@@ -101,8 +114,8 @@
 		.shop-page { padding: 0.75rem 1.25rem; --footer-bleed: 0.75rem; }
 		header { gap: 0.75rem; margin-top: -0.75rem; }
 		nav { gap: 0.75rem; }
-		.back-link, .bag-link { font-size: 0.8rem; letter-spacing: 0.1em; gap: 0.25rem; }
-		.back-link :global(svg) { display: none; }
+		.crumbs a, .crumbs span, .bag-link { font-size: 0.8rem; letter-spacing: 0.1em; gap: 0.25rem; }
+		.crumbs li + li::before { margin: 0 0.4rem; }
 		main { padding-top: 3.5rem; }
 		.product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem 1.5rem; }
 	}
