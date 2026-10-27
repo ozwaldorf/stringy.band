@@ -14,6 +14,7 @@
 	import videoData from './lib/videos.json';
 	import ShopPreview from './ShopPreview.svelte';
 	import Footer from './Footer.svelte';
+	import { glideTarget, glideTo, gliding } from './lib/scroll';
 
 	const lineup = [
 		['Guitar', 'Phoenix Stewart'],
@@ -85,6 +86,30 @@
 			window.removeEventListener('resize', schedule);
 			window.removeEventListener('glidestart', onGlideStart);
 			window.removeEventListener('glideend', onGlideEnd);
+		};
+	});
+
+	// Scrolling up past the links carries on to the top. Snapping would hold it
+	// at the links, so it is off below them, and at the crossing a glide takes
+	// over at the visitor's own speed
+	$effect(() => {
+		const root = document.documentElement;
+		let lastY = window.scrollY;
+		let lastAt = performance.now();
+		const onScroll = (event: Event) => {
+			const y = window.scrollY;
+			const links = glideTarget('follow');
+			if (!gliding() && y < lastY && lastY > links && y < links - 1 && y > 0) {
+				glideTo('', true, (lastY - y) / Math.max(8, event.timeStamp - lastAt));
+			}
+			root.classList.toggle('below-links', y > links + 1);
+			lastY = y;
+			lastAt = event.timeStamp;
+		};
+		window.addEventListener('scroll', onScroll, { passive: true });
+		return () => {
+			window.removeEventListener('scroll', onScroll);
+			root.classList.remove('below-links');
 		};
 	});
 
@@ -430,8 +455,9 @@
 	/* The landing snaps whole: a scroll on it settles at the top or on the links.
 	   The links' snap area runs on to the end of the page, so everything below
 	   scrolls freely. */
-	/* Off while a link glides, or it would pull each step to a snap point */
-	:global(html:has(#follow):not(.gliding)) {
+	/* Off while a link glides, or it would pull each step to a snap point, and
+	   below the links, or it would stop a scroll back up at them */
+	:global(html:has(#follow):not(.gliding, .below-links)) {
 		scroll-snap-type: y mandatory;
 	}
 
