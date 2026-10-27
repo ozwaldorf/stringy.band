@@ -14,6 +14,7 @@
 	import videoData from './lib/videos.json';
 	import ShopPreview from './ShopPreview.svelte';
 	import BandPhotos from './BandPhotos.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 	import Footer from './Footer.svelte';
 	import { glideTarget, glideTo, gliding } from './lib/scroll';
 
@@ -334,7 +335,7 @@
 	</nav>
 
 	<section id="follow" class="socials-section" aria-label="Follow us">
-		<h1>Follow Us</h1>
+		<SectionHeading label="Follow Us" />
 		<nav class="socials">
 			<a
 				class="bandsintown"
@@ -417,7 +418,7 @@
 	<Shows />
 
 	<section id="contact" class="contact" aria-label="Booking contact">
-		<h1>Contact Us</h1>
+		<SectionHeading label="Contact Us" />
 		<a href="mailto:beans@stringy.band"><IconEmail />beans@stringy.band</a>
 	</section>
 	</div>
@@ -795,13 +796,6 @@
 		margin-bottom: 3rem;
 	}
 
-	.contact h1 {
-		margin: 0 0 var(--section-heading-gap);
-		font-size: var(--section-heading);
-		letter-spacing: 0.14em;
-		color: var(--color-text-subtle);
-	}
-
 	.contact a {
 		font-size: 1.1rem;
 		font-weight: 400;
@@ -831,27 +825,20 @@
 		}
 	}
 
-	.socials-section h1 {
-		margin: 0 0 var(--section-heading-gap);
-		font-size: var(--section-heading);
-		letter-spacing: 0.14em;
-		color: var(--color-text-subtle);
-	}
-
 	.socials {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 1rem;
+		gap: 1.25rem;
 	}
 
 	.socials a {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2.5rem;
-		height: 2.5rem;
-		font-size: 2.5rem;
+		width: 3.25rem;
+		height: 3.25rem;
+		font-size: 3.25rem;
 		line-height: 0;
 		transition: color 120ms ease, transform 120ms ease;
 	}

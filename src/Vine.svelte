@@ -1,30 +1,33 @@
 <script lang="ts">
-	import { growVine, leafPath, midribPath, VINE_WIDTH } from './lib/vine';
+	import VineDrawing from './VineDrawing.svelte';
 
-	let { seed, dry = false }: { seed: number; dry?: boolean } = $props();
+	let {
+		seed,
+		roots = false,
+		grow,
+		delay = 0,
+		grown = $bindable(false),
+		duration = $bindable(0)
+	}: {
+		seed: number;
+		roots?: boolean;
+		grow?: boolean;
+		delay?: number;
+		grown?: boolean;
+		duration?: number;
+	} = $props();
+
+	// Drawn a little smaller than full size, then grown over the column's full height
+	const SCALE = 0.85;
 
 	let height = $state(0);
-	const vine = $derived(growVine(height, seed, dry));
 </script>
 
-<div class="vine" class:dry bind:clientHeight={height} aria-hidden="true">
+<div class="vine" bind:clientHeight={height} aria-hidden="true">
 	{#if height > 0}
-		<svg width={VINE_WIDTH} {height} viewBox="0 0 {VINE_WIDTH} {height}">
-			<path class="stem" d={vine.stem} />
-			{#each vine.leaves as leaf}
-				<g transform="translate({leaf.x} {leaf.y}) rotate({leaf.angle})">
-					{#if leaf.stub}
-						<path class="petiole" d="M0 0 L3 0" />
-					{:else}
-						<path class="petiole" d="M0 0 L2.5 0" />
-						<g transform="translate(2 0)">
-							<path class="leaf" class:alt={leaf.tone === 1} d={leafPath(leaf)} />
-							<path class="midrib" d={midribPath(leaf)} />
-						</g>
-					{/if}
-				</g>
-			{/each}
-		</svg>
+		<div class="scaled" style="--scale: {SCALE}">
+			<VineDrawing length={height / SCALE} {seed} {roots} {grow} {delay} bind:grown bind:duration />
+		</div>
 	{/if}
 </div>
 
@@ -38,55 +41,8 @@
 		pointer-events: none;
 	}
 
-	svg {
-		display: block;
-		overflow: visible;
-	}
-
-	.stem {
-		fill: var(--gb-green-dim);
-	}
-
-	.petiole {
-		stroke: var(--gb-green-dim);
-		stroke-width: 1;
-		stroke-linecap: round;
-	}
-
-	.leaf {
-		fill: var(--gb-green);
-		stroke: var(--gb-green-dim);
-		stroke-width: 0.9;
-		stroke-linejoin: round;
-	}
-
-	.leaf.alt {
-		fill: var(--gb-aqua);
-	}
-
-	.midrib {
-		fill: none;
-		stroke: var(--gb-green-dim);
-		stroke-width: 0.6;
-		opacity: 0.7;
-	}
-
-	.dry .stem {
-		fill: var(--gb-gray);
-	}
-
-	.dry .petiole,
-	.dry .leaf,
-	.dry .midrib {
-		stroke: var(--gb-gray);
-	}
-
-	.dry .leaf {
-		fill: var(--gb-bg4);
-	}
-
-	.dry .leaf.alt {
-		fill: var(--gb-yellow-dim);
-		opacity: 0.7;
+	.scaled {
+		transform: scale(var(--scale));
+		transform-origin: top center;
 	}
 </style>

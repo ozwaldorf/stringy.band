@@ -7,6 +7,7 @@
 	import data from './lib/shows.json';
 	import type { Show } from './lib/bandsintown';
 	import Vine from './Vine.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 
 	const all: Show[] = data.shows.map((s) => ({
 		...s,
@@ -16,6 +17,13 @@
 	const now = Date.now();
 	const upcoming = all.filter((s) => s.end.getTime() >= now);
 	const past = all.filter((s) => s.end.getTime() < now).reverse();
+
+	// A fresh vine each visit
+	const vineSeed = Math.floor(Math.random() * 2 ** 32);
+	// The past vine carries on growing where the upcoming one leaves off
+	let upcomingGrown = $state(false);
+	let upcomingGrowFor = $state(0);
+
 
 	const PAST_LIMIT = 5;
 	let pastExpanded = $state(false);
@@ -76,14 +84,14 @@
 </script>
 
 <section id="shows" aria-label="Shows">
-	<h1>Shows</h1>
+	<SectionHeading label="Shows" />
 
 	<h2>Upcoming</h2>
 	{#if upcoming.length === 0}
 		<p class="state">No upcoming shows</p>
 	{:else}
 		<div class="timeline">
-			<Vine seed={7} />
+			<Vine seed={vineSeed} bind:grown={upcomingGrown} bind:duration={upcomingGrowFor} />
 			<ul>
 				{#each upcoming as show (show.uid)}
 					<li id={show.anchor}>
@@ -134,7 +142,12 @@
 	{#if past.length > 0}
 		<h2>Past</h2>
 		<div class="timeline past">
-			<Vine seed={13} dry />
+			<Vine
+				seed={vineSeed + 1}
+				roots
+				grow={upcoming.length ? upcomingGrown : undefined}
+				delay={upcoming.length ? upcomingGrowFor : 0}
+			/>
 			<ul>
 				{#each visiblePast as show (show.uid)}
 					<li id={show.anchor}>
@@ -175,19 +188,13 @@
 
 <style>
 	section {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 0.75rem;
 		margin-top: 1.5rem;
 		width: 100%;
-	}
-
-	h1 {
-		margin: 0 0 var(--section-heading-gap);
-		font-size: var(--section-heading);
-		letter-spacing: 0.14em;
-		color: var(--color-text-subtle);
 	}
 
 	h2 {
@@ -347,7 +354,6 @@
 			align-items: flex-start;
 		}
 
-		section > h1,
 		section > h2,
 		section > .past-more {
 			align-self: center;

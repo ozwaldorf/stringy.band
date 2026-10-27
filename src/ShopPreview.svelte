@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ShopHeading from './ShopHeading.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 	import ProductCard from './ProductCard.svelte';
 	import { groupedProducts, refreshCatalog } from './lib/catalog';
 	import IconArrowRight from '~icons/carbon/arrow-right';
@@ -16,7 +16,7 @@
 </script>
 
 <section id="merch" aria-label="Merch">
-	<ShopHeading label="Merch" />
+	<SectionHeading label="Merch" level="h2" />
 	{#if featured.length}
 		<div class="products">
 			{#each featured as product (product.id)}<ProductCard {product} />{/each}

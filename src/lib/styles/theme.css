@@ -75,6 +75,10 @@ section[id] {
 }
 
 :root {
+	/* Greens from the logo */
+	--logo-green-light: #7ece6b;
+	--logo-green: #24a148;
+	--logo-green-mid: #307e35;
 	--section-heading: 1.75rem;
 	--section-heading-gap: 1.5rem;
 	--paper: var(--gb-bg1);

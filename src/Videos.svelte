@@ -1,5 +1,6 @@
 <script lang="ts">
 	import data from './lib/videos.json';
+	import SectionHeading from './SectionHeading.svelte';
 
 	const CYCLE_MS = 15_000;
 
@@ -75,7 +76,7 @@
 
 {#if current}
 	<section id="videos" aria-label="Videos">
-		<h1>Latest Videos</h1>
+		<SectionHeading label="Latest Videos" />
 		<div class="frame" bind:this={frame}>
 			<div class="mat">
 				<div class="screen">
@@ -124,13 +125,6 @@
 		gap: 0.75rem;
 		margin-top: 1.5rem;
 		width: 100%;
-	}
-
-	h1 {
-		margin: 0 0 var(--section-heading-gap);
-		font-size: var(--section-heading);
-		letter-spacing: 0.14em;
-		color: var(--color-text-subtle);
 	}
 
 	.frame {
