@@ -18,6 +18,8 @@ const DATE_BOTTOM = 924;
 const DATE_TOP_BOTTOM = 530;
 // Round shapes start under the logo
 const ROUND_TOP = 318;
+// and stop at this size, leaving a column for the QR code
+const ROUND_MAX = 560;
 // The art leans left, so it sits a little right of centre to look centred
 const LOGO_NUDGE = 24 / LOGO_WIDTH;
 // The art's lower edge is mostly air, so it counts for less of its height
@@ -787,7 +789,9 @@ function polaroid(s: Scene): FlierLayout {
 // The date set huge beside the photo cut to a shape, small logo above it
 function bigdate(s: Scene): FlierLayout {
 	const { ctx, palette, fields, art } = s;
-	const maxWidth = s.link ? WIDTH - PAD * 2 - 230 - 40 : WIDTH - PAD * 2;
+	const shape = SHAPES.find((c) => c.name === art.shape) ?? SHAPES[0];
+	// Beside a round shape the QR code moves up under the date, so the details take the full width
+	const maxWidth = s.link && !shape.round ? WIDTH - PAD * 2 - 230 - 40 : WIDTH - PAD * 2;
 	const info = stack(
 		s,
 		[
@@ -798,14 +802,14 @@ function bigdate(s: Scene): FlierLayout {
 		{ x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth }
 	);
 	// The shape fills the right side down to just over the QR code and the details
-	const slotBottom = Math.min(HEIGHT - PAD - 230 - 36, info.top - 50);
+	const slotBottom = shape.round ? info.top - 50 : Math.min(HEIGHT - PAD - 230 - 36, info.top - 50);
 	const slot = { x: 452, y: PAD, w: WIDTH - PAD - 452, h: slotBottom - PAD };
-	const shape = SHAPES.find((c) => c.name === art.shape) ?? SHAPES[0];
 	// Held to the slot; its largest size fills it
 	const scale = Math.min(1, art.shapeScale * SHAPE_GROW);
 	// Stretchable shapes fill the slot on the right. Round ones would be held to its width,
 	// so they take the whole lower left under the logo instead, and the date moves top right.
-	const d = Math.min(slotBottom - ROUND_TOP, WIDTH - PAD * 2) * scale;
+	// held back so the QR code beside it can be as big as the column allows
+	const d = Math.min(slotBottom - ROUND_TOP, ROUND_MAX) * scale;
 	const photo = shape.round
 		? { x: PAD, y: slotBottom - d, w: d, h: d }
 		: { x: slot.x + (slot.w * (1 - scale)) / 2, y: slot.y + (slot.h * (1 - scale)) / 2, w: slot.w * scale, h: slot.h * scale };
@@ -849,12 +853,17 @@ function bigdate(s: Scene): FlierLayout {
 		Object.assign(box, { size: 56, lineHeight: 70, baselines: [box.y + box.h / 2 + 20], span: [PAD, WIDTH - PAD * 2], own: true });
 	}
 
-	// Written under the time in the date's column, or beside the foot of a round shape
+	// Beside a round shape the QR code fills the column right of it, down to the shape's foot,
+	// under the date and the tagline; otherwise it keeps the corner
+	const qrColumn = WIDTH - PAD - (PAD + ROUND_MAX + 40);
+	const qrSize = shape.round ? Math.min(qrColumn, slotBottom - DATE_TOP_BOTTOM - 110) : 230;
+	const qr = shape.round
+		? drawQr(s, WIDTH - PAD - qrSize / 2, slotBottom - qrSize / 2, qrSize, palette.bg)
+		: drawQr(s, WIDTH - PAD - 115, HEIGHT - PAD - 115, 230, palette.bg);
+	// Written under the time in the date's column
 	const tagline = shape.round
-		// Round shapes leave room low on the right, where the circle curves away
-		? drawTagline(s, WIDTH - PAD, slotBottom - 40, palette.accent, { maxWidth: 400 })
+		? drawTagline(s, WIDTH - PAD, DATE_TOP_BOTTOM + 64, palette.accent, { maxWidth: qrColumn })
 		: drawTagline(s, PAD + 360, DATE_BOTTOM + 64, palette.accent, { maxWidth: 360 });
-	const qr = drawQr(s, WIDTH - PAD - 115, HEIGHT - PAD - 115, 230, palette.bg);
 	return { photo, qr, field: shape.round ? [WIDTH - 28, DATE_TOP_BOTTOM + 120] : [WIDTH - 28, slotBottom + 30], text: { ...date.text, ...info.text, tagline } };
 }
 
