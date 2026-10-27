@@ -43,3 +43,8 @@ export function refreshCatalog(force = false): Promise<Product[]> {
 		});
 	return pending;
 }
+
+/** The name a product's note morphs under between shop pages (its card, its item page photo). */
+export function productTransitionName(id: string): string {
+	return `card-${id.replace(/[^\w-]/g, '-')}`;
+}

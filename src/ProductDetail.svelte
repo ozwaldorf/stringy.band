@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { addToCart, cart } from './lib/cart';
+	import { productTransitionName } from './lib/catalog';
 	import { formatPrice, productPrice, type Variant } from './lib/fourthwall';
 	import ProductSections from './ProductSections.svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
@@ -81,7 +82,7 @@
 
 <div class="product-detail">
 	<div class="gallery">
-		<div class="product-image note torn" style="--tear-shift: 7rem; --tear-tile: 23rem"><span class="paper plain" aria-hidden="true"></span><img src={photos[photoIndex]} alt={`${product.title}${color ? `, ${color.name}` : ''}, photo ${photoIndex + 1} of ${photos.length}`} width="422" height="422" /></div>
+		<div class="product-image note torn" style="--tear-shift: 7rem; --tear-tile: 23rem" style:view-transition-name={productTransitionName(product.id)}><span class="paper plain" aria-hidden="true"></span><img src={photos[photoIndex]} alt={`${product.title}${color ? `, ${color.name}` : ''}, photo ${photoIndex + 1} of ${photos.length}`} width="422" height="422" /></div>
 		{#if photos.length > 1}
 			<div class="thumbnails" role="group" aria-label="Product photos" style={`--count: ${photos.length}`}>
 				{#each photos as photo, index}

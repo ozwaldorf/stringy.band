@@ -5,6 +5,7 @@
 	import IconArrowRight from '~icons/carbon/arrow-right';
 	import ColorSwatch from './ColorSwatch.svelte';
 	import { productOptions } from './lib/product-options';
+	import { productTransitionName } from './lib/catalog';
 
 	let { product }: { product: Product } = $props();
 	let card = $state<HTMLAnchorElement>();
@@ -17,7 +18,7 @@
 	const preview = $derived(previews.find(color => color.name === previewName) ?? previews[0]);
 	const previewImage = $derived(colors.length > 1 && preview ? preview.image : product.image);
 	// Matches this product's card on the other shop page, so it morphs across a route change
-	const transitionName = $derived(`card-${product.id.replace(/[^\w-]/g, '-')}`);
+	const transitionName = $derived(productTransitionName(product.id));
 
 	// Stable per-product scatter so each note sits a little differently
 	const scatter = $derived.by(() => {
