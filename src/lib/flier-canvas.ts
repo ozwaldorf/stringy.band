@@ -986,7 +986,7 @@ function shapes(s: Scene): FlierLayout {
 	const clip = () => shapePath(ctx, shape.name, photo);
 
 	const cx = WIDTH / 2;
-	const qrSize = 210;
+	const qrSize = 250;
 	// The details centre in the room beside the QR code, not on the flier, so they get its width
 	const textRight = WIDTH - PAD - qrSize - 36;
 	const tx = (PAD + textRight) / 2;
