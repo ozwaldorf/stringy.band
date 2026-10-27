@@ -83,8 +83,8 @@
 		section { --cols: 2; }
 		.products { gap: 1.25rem; }
 		.products > :global(.product:nth-child(n + 3)) { display: none; }
-		/* No room beside the button on a phone: smaller, and tucked onto its corner */
-		.button-bean { left: calc(100% - 1rem); width: 2.75rem; bottom: -1.75rem; }
+		/* No room beside the button on a phone */
+		.button-bean { display: none; }
 	}
 
 	@media (min-width: 769px) and (max-width: 1099px) {

@@ -109,7 +109,8 @@
 	.brand :global(.logo-art) { width: calc(2.5rem * 10 / 7); }
 	main { flex: 1; display: flex; flex-direction: column; padding-top: 4rem; }
 	/* Subtitle under the heading */
-	.catalog-meta { margin: 0.5rem 0 0; color: var(--color-text-muted); font-size: 0.8rem; text-align: center; }
+	/* Tucked up under the title, closer than the usual gap below a heading */
+	.catalog-meta { margin: calc(0.25rem - var(--section-heading-gap)) 0 0; color: var(--color-text-muted); font-size: 0.8rem; text-align: center; }
 	.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3.25rem 2.25rem; margin: 2.75rem 0 4rem; }
 	@media (max-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 	@media (max-width: 600px) {
