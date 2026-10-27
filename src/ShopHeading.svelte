@@ -14,7 +14,7 @@
 	.shop-heading :is(h1, h2) {
 		min-width: 0;
 		margin: 0;
-		font-size: 1.25rem;
+		font-size: var(--section-heading);
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 		text-align: center;
