@@ -7,7 +7,6 @@
 	import IconFacebook from '~icons/carbon/logo-facebook';
 	import IconMenu from '~icons/carbon/menu';
 	import IconClose from '~icons/carbon/close';
-	import { fly, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import Shows from './Shows.svelte';
@@ -106,7 +105,16 @@
 	// button takes over once it is gone
 	let menuGone = $state(false);
 	let mobileOpen = $state(false);
+	// Height of the phone menu; the landing sheet slides down by what hangs below the bar
+	let dropHeight = $state(0);
 	const motion = (duration: number) => (prefersReducedMotion.current ? 0 : duration);
+
+	// Moves the phone menu down from behind the bar, in step with the sheet
+	const drop = (node: HTMLElement) => ({
+		duration: motion(220),
+		easing: cubicOut,
+		css: (t: number) => `transform: translateY(${(t - 1) * node.offsetHeight}px)`
+	});
 
 	$effect(() => {
 		if (!menu) return;
@@ -243,7 +251,7 @@
 
 <main id="top" tabindex="-1">
 	<div class="content">
-	<span class="paper landing-sheet" aria-hidden="true" bind:this={sheet}></span>
+	<span class="paper landing-sheet" aria-hidden="true" style:--open-extra={mobileOpen ? `calc(${dropHeight}px - 3.5rem)` : '0px'} bind:this={sheet}></span>
 	<a class="logo-link" href="#top" aria-label="Stringy and the Beans, back to top">
 		<img class="logo" src="/logo.svg" alt="Stringy and the Beans" bind:this={logo} />
 	</a>
@@ -266,22 +274,18 @@
 			</span>
 		</button>
 		{#if mobileOpen}
-			<nav
-				id="mobile-sections"
-				class="mobile-sections"
-				aria-label="Sections"
-				transition:slide={{ duration: motion(220), easing: cubicOut }}
-			>
-				<span class="paper" aria-hidden="true"></span>
-				{#each sections as [id, label], i (id)}
-					<a
-						href={`#${id}`}
-						aria-current={active === id ? 'location' : undefined}
-						onclick={() => (mobileOpen = false)}
-						in:fly={{ y: -8, duration: motion(200), delay: motion(40 + i * 35), easing: cubicOut }}
-					>{label}</a>
-				{/each}
-			</nav>
+			<!-- Clips the menu at the bar so it slides out from behind it -->
+			<div class="mobile-sections-clip" bind:offsetHeight={dropHeight}>
+				<nav id="mobile-sections" class="mobile-sections" aria-label="Sections" transition:drop>
+					{#each sections as [id, label] (id)}
+						<a
+							href={`#${id}`}
+							aria-current={active === id ? 'location' : undefined}
+							onclick={() => (mobileOpen = false)}
+						>{label}</a>
+					{/each}
+				</nav>
+			</div>
 		{/if}
 	</header>
 
@@ -472,6 +476,9 @@
 		height: calc(var(--sheet-h, 100vh) + var(--tear));
 		margin: calc(-1 * var(--sheet-lead, 1rem)) calc(50% - 50vw)
 			calc(var(--sheet-lead, 1rem) - var(--sheet-h, 100vh) - var(--tear) - 1.5rem);
+		/* The open phone menu pulls the whole sheet down by its height */
+		transform: translateY(var(--open-extra, 0px));
+		transition: transform 220ms cubic-bezier(0.33, 1, 0.68, 1);
 	}
 
 
@@ -524,7 +531,7 @@
 		}
 
 		.menu a {
-			font-size: 1.5rem;
+			font-size: 1.2rem;
 			letter-spacing: 0.12em;
 			transition: color 120ms ease, opacity 200ms ease, visibility 200ms;
 		}
@@ -570,6 +577,13 @@
 			visibility: visible;
 		}
 
+		/* Above the menu list, which tucks up into the bar row */
+		.mobile-logo,
+		.menu-toggle {
+			position: relative;
+			z-index: 1;
+		}
+
 		.mobile-logo {
 			display: flex;
 		}
@@ -602,32 +616,37 @@
 			transform: rotate(90deg);
 		}
 
-		.mobile-sections {
+		.mobile-sections-clip {
 			position: absolute;
-			top: 100%;
+			/* The first row sits in the bar, between the logo and the close button */
+			top: var(--header-lift);
 			left: 0;
 			right: 0;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 0.25rem;
-			padding: 0.75rem 0 1rem;
-			/* Reach the sheet up behind the bar so no seam or shadow shows where they meet */
-			--reach: calc(3.5rem + var(--header-lift));
+			overflow: hidden;
 		}
 
-		.mobile-sections .paper {
-			--mottle-size: 100% 100vh;
+		/* Two columns, like the landing list */
+		.mobile-sections {
+			display: grid;
+			grid-template-columns: repeat(2, auto);
+			justify-content: center;
+			justify-items: center;
+			gap: 0.25rem clamp(1.5rem, 8vw, 2.5rem);
+			padding: 1rem 0;
 		}
 
 		.mobile-sections a {
-			padding: 0.5rem 1rem;
+			padding: 0.5rem 0;
 			color: var(--color-text-subtle);
 			font-weight: 700;
-			font-size: 1.5rem;
-			letter-spacing: 0.14em;
+			font-size: 1.2rem;
+			letter-spacing: 0.12em;
 			text-transform: uppercase;
 			text-decoration: none;
+		}
+
+		.mobile-sections a:last-of-type:nth-of-type(odd) {
+			grid-column: 1 / -1;
 		}
 
 		.mobile-sections a:hover,
@@ -637,6 +656,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.landing-sheet,
 		.menu,
 		.menu a,
 		.mobile-bar,
