@@ -6,6 +6,7 @@
 	import IconTicket from '~icons/carbon/ticket';
 	import data from './lib/shows.json';
 	import type { Show } from './lib/bandsintown';
+	import Vine from './Vine.svelte';
 
 	const all: Show[] = data.shows.map((s) => ({
 		...s,
@@ -60,7 +61,6 @@
 		return `${weekdayFmt.format(d)}, ${monthFmt.format(d)} ${ordinal(d.getDate())}`;
 	}
 
-
 	function mapLink(location: string): string {
 		return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 	}
@@ -73,12 +73,6 @@
 		if (!venue) return false;
 		return lettersOnly(summary).includes(lettersOnly(venue));
 	}
-
-	function isFlipped(uid: string): boolean {
-		let h = 0;
-		for (let i = 0; i < uid.length; i++) h = (h + uid.charCodeAt(i)) & 0xffff;
-		return (h & 1) === 1;
-	}
 </script>
 
 <section id="shows" aria-label="Shows">
@@ -88,79 +82,85 @@
 	{#if upcoming.length === 0}
 		<p class="state">No upcoming shows</p>
 	{:else}
-		<ul>
-			{#each upcoming as show (show.uid)}
-				<li id={show.anchor} class="upcoming-row" class:flipped={isFlipped(show.uid)}>
-					<div class="when">
-						<span class="date date-full">{formatDate(show.start)}</span>
-						<span class="date date-short">{formatDateShort(show.start)}</span>
-						<span class="time">{timeFmt.format(show.start)}</span>
-					</div>
-					<div class="details">
-						<span class="summary">{show.summary}</span>
-						{#if show.venue && !venueInSummary(show.summary, show.venue)}
-							<span class="venue">{show.venue}</span>
-						{/if}
-						{#if show.simpleAddress}
-							<a
-								class="address"
-								href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
-								target="_blank"
-								rel="noopener"
-							><IconLocation />{show.simpleAddress}</a>
-						{/if}
-						{#if show.tickets || show.url || show.instagram}
-							<div class="links">
-								{#if show.tickets}
-									<a class="tickets-link" href={show.tickets} target="_blank" rel="noopener">
-										<IconTicket /> Tickets
-									</a>
-								{/if}
-								{#if show.url}
-									<a class="details-link" href={show.url} target="_blank" rel="noopener">
-										<IconLaunch /> Event Details
-									</a>
-								{/if}
-								{#if show.instagram}
-									<a class="ig-link" href={show.instagram} target="_blank" rel="noopener" aria-label="Event flier on Instagram">
-										<IconInstagram /> Event Flier
-									</a>
-								{/if}
-							</div>
-						{/if}
-					</div>
-				</li>
-			{/each}
-		</ul>
+		<div class="timeline">
+			<Vine seed={7} />
+			<ul>
+				{#each upcoming as show (show.uid)}
+					<li id={show.anchor}>
+						<div class="when">
+							<span class="date date-full">{formatDate(show.start)}</span>
+							<span class="date date-short">{formatDateShort(show.start)}</span>
+							<span class="time">{timeFmt.format(show.start)}</span>
+						</div>
+						<div class="details">
+							<span class="summary">{show.summary}</span>
+							{#if show.venue && !venueInSummary(show.summary, show.venue)}
+								<span class="venue">{show.venue}</span>
+							{/if}
+							{#if show.simpleAddress}
+								<a
+									class="address"
+									href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
+									target="_blank"
+									rel="noopener"
+								><IconLocation />{show.simpleAddress}</a>
+							{/if}
+							{#if show.tickets || show.url || show.instagram}
+								<div class="links">
+									{#if show.tickets}
+										<a class="tickets-link" href={show.tickets} target="_blank" rel="noopener">
+											<IconTicket /> Tickets
+										</a>
+									{/if}
+									{#if show.url}
+										<a class="details-link" href={show.url} target="_blank" rel="noopener">
+											<IconLaunch /> Event Details
+										</a>
+									{/if}
+									{#if show.instagram}
+										<a class="ig-link" href={show.instagram} target="_blank" rel="noopener" aria-label="Event flier on Instagram">
+											<IconInstagram /> Event Flier
+										</a>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	{/if}
 
 	{#if past.length > 0}
 		<h2>Past</h2>
-		<ul class="past">
-			{#each visiblePast as show (show.uid)}
-				<li id={show.anchor}>
-					<div class="when">
-						<span class="date date-full">{formatDate(show.start)}</span>
-						<span class="date date-short">{formatDateShort(show.start)}</span>
-						<span class="time">{timeFmt.format(show.start)}</span>
-					</div>
-					<div class="details">
-						<span class="summary">{show.summary}</span>
-						{#if show.venue && !venueInSummary(show.summary, show.venue)}
-							<span class="venue">{show.venue}</span>
-						{/if}
-						{#if show.simpleAddress}
-							<a
-								class="address"
-								href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
-								target="_blank"
-								rel="noopener"
-							><IconLocation />{show.simpleAddress}</a>
-						{/if}
-					</div>
-				</li>
-			{/each}
-		</ul>
+		<div class="timeline past">
+			<Vine seed={13} dry />
+			<ul>
+				{#each visiblePast as show (show.uid)}
+					<li id={show.anchor}>
+						<div class="when">
+							<span class="date date-full">{formatDate(show.start)}</span>
+							<span class="date date-short">{formatDateShort(show.start)}</span>
+							<span class="time">{timeFmt.format(show.start)}</span>
+						</div>
+						<div class="details">
+							<span class="summary">{show.summary}</span>
+							{#if show.venue && !venueInSummary(show.summary, show.venue)}
+								<span class="venue">{show.venue}</span>
+							{/if}
+							{#if show.simpleAddress}
+								<a
+									class="address"
+									href={mapLink(show.location ?? show.fullAddress ?? show.simpleAddress)}
+									target="_blank"
+									rel="noopener"
+								><IconLocation />{show.simpleAddress}</a>
+							{/if}
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</div>
 		{#if past.length > PAST_LIMIT}
 			<button class="past-more" onclick={() => (pastExpanded = !pastExpanded)}>
 				{#if pastExpanded}
@@ -203,6 +203,11 @@
 		font-size: 0.95rem;
 	}
 
+	.timeline {
+		position: relative;
+		width: 100%;
+	}
+
 	ul {
 		list-style: none;
 		padding: 0;
@@ -242,47 +247,14 @@
 	}
 
 	.details {
-		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
 		min-width: 0;
 		padding-left: 2.5rem;
-		border-left: 1px solid var(--color-border);
 	}
 
-	.upcoming-row .details {
-		border-left: none;
-	}
-
-	.past .details {
-		border-left-width: 2px;
-	}
-
-
-	.upcoming-row .details::before {
-		content: '';
-		position: absolute;
-		left: -1rem;
-		top: 0;
-		bottom: -1rem;
-		width: 2rem;
-		background-image: var(--floral-vine);
-		background-repeat: repeat-y;
-		background-size: 100% auto;
-		background-position: left top;
-		pointer-events: none;
-	}
-
-	.upcoming-row:last-child .details::before {
-		bottom: 0;
-	}
-
-	.upcoming-row.flipped .details::before {
-		transform: scaleX(-1);
-	}
-
-.summary {
+	.summary {
 		font-weight: 600;
 	}
 
@@ -383,6 +355,10 @@
 
 		li {
 			grid-template-columns: 7rem 1fr;
+		}
+
+		.timeline {
+			--vine-x: 7rem;
 		}
 
 		.date-full {
