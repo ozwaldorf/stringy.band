@@ -20,6 +20,8 @@ const DATE_TOP_BOTTOM = 530;
 const ROUND_TOP = 318;
 // and leave a column beside them for a QR code at least this big
 const QR_MIN = 230;
+// Air between a big date photo and the QR code that trades room with it
+const QR_GAP = 56;
 // The art leans left, so it sits a little right of centre to look centred
 const LOGO_NUDGE = 24 / LOGO_WIDTH;
 // The art's lower edge is mostly air, so it counts for less of its height
@@ -45,14 +47,13 @@ export const DESIGNS: { name: Design; label: string }[] = [
 ];
 
 // Cut-outs for the photo in the shapes layout, each with the height it takes at full width
-export type Shape = 'arch' | 'circle' | 'oval' | 'rounded' | 'diamond' | 'hexagon' | 'flower' | 'burst' | 'square';
+export type Shape = 'arch' | 'circle' | 'oval' | 'rounded' | 'hexagon' | 'flower' | 'burst' | 'square';
 
 // `round` shapes keep a square box wherever they go
 export const SHAPES: { name: Shape; label: string; height: number; round?: boolean }[] = [
 	{ name: 'arch', label: 'Arch', height: 700 },
 	{ name: 'oval', label: 'Oval', height: 700 },
 	{ name: 'rounded', label: 'Rounded', height: 640 },
-	{ name: 'diamond', label: 'Diamond', height: 700 },
 	{ name: 'hexagon', label: 'Hexagon', height: 660 },
 	{ name: 'circle', label: 'Circle', height: 600, round: true },
 	{ name: 'flower', label: 'Flower', height: 600, round: true },
@@ -122,6 +123,10 @@ export type TextBox = Box & {
 	empty: boolean;
 	// Where its callout line should meet it, when not the text's own edge
 	anchor?: [number, number];
+	// Where its callout falls in its column's top to bottom order, when not by its line
+	sortY?: number;
+	// The gutter its callout sits in, when not the side its text is aligned to
+	side?: 'left' | 'right';
 	// Where the drawn text ends on the right, which can fall well short of the box
 	end: number;
 	// One value broken over several lines, so it edits wrapping across them all
@@ -135,6 +140,12 @@ export type FlierLayout = {
 	qr: Box;
 	// A point of plain background, for the colour callout
 	field: [number, number];
+	// Plain background runs down this stretch of the field's x, so its line can meet it level with the callout
+	fieldSpan?: [number, number];
+	// Where the photo's callout line meets it, when not a third of the way down its left edge
+	photoAnchor?: [number, number];
+	// Where the photo's callout, menu and all, starts down its column, rather than level with the photo
+	photoCalloutY?: number;
 	text: Partial<Record<TextKey, TextBox>>;
 };
 
@@ -328,8 +339,6 @@ function shapePath(ctx: CanvasRenderingContext2D, shape: Shape, box: Box) {
 		case 'rounded':
 			ctx.beginPath();
 			return ctx.roundRect(x, y, w, h, w * 0.16);
-		case 'diamond':
-			return corners(ctx, [[cx, y], [x + w, cy], [cx, y + h], [x, cy]]);
 		case 'hexagon':
 			return corners(ctx, [[cx, y], [x + w, y + h * 0.25], [x + w, y + h * 0.75], [cx, y + h], [x, y + h * 0.75], [x, y + h * 0.25]]);
 		case 'square':
@@ -432,6 +441,16 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, font: string, maxWidt
 			lines[lines.length - 1] = `${last} ${word}`;
 		} else {
 			lines.push(word);
+		}
+	}
+	// A lone word left on the last line takes the word before it along, where the two fit
+	const n = lines.length;
+	if (n > 1 && !lines[n - 1].includes(' ')) {
+		const words = lines[n - 2].split(' ');
+		const moved = `${words[words.length - 1]} ${lines[n - 1]}`;
+		if (words.length > 1 && ctx.measureText(moved.toUpperCase()).width <= maxWidth) {
+			lines[n - 2] = words.slice(0, -1).join(' ');
+			lines[n - 1] = moved;
 		}
 	}
 	ctx.restore();
@@ -752,28 +771,41 @@ function polaroid(s: Scene): FlierLayout {
 	const { ctx, palette, fields } = s;
 	const head = logoHead(s, { left: PAD, right: WIDTH - PAD, top: 40, accent: palette.accent, ink: palette.text, ...HEAD_TYPE });
 
-	// Date and time down the left, entry right, along the foot
-	const when = stack(
-		s,
-		[
-			...wrap(ctx, fields.date, `800 44px ${FONT}`, 560, 2).map((part, i) =>
-				line(s, 'date', part, { size: 44, weight: 800, color: palette.text, gap: i ? 10 : 0, upper: true })
-			),
-			line(s, 'time', fields.time, { size: 44, weight: 800, color: palette.text, gap: 14, upper: true })
-		],
-		{ x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: 560 }
-	);
-	if (when.text.date) when.text.date.wrap = true;
-	const entry = stack(s, [line(s, 'entry', fields.entry, { size: 50, weight: 800, color: palette.accent, gap: 0, upper: true })], {
-		x: WIDTH - PAD, bottom: HEIGHT - PAD, align: 'right', maxWidth: WIDTH - PAD * 2 - 560 - 40
-	});
+	// Date and time down the left, entry right, along the foot, at `grow` times their usual size
+	const leftWidth = 560;
+	const foot = (grow: number, draw: boolean) => {
+		const size = (n: number) => Math.round(n * grow);
+		const when = stack(
+			s,
+			[
+				...wrap(ctx, fields.date, `800 ${size(44)}px ${FONT}`, leftWidth, 2).map((part, i) =>
+					line(s, 'date', part, { size: size(44), weight: 800, color: palette.text, gap: i ? size(10) : 0, upper: true })
+				),
+				line(s, 'time', fields.time, { size: size(44), weight: 800, color: palette.text, gap: size(14), upper: true })
+			],
+			{ x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: leftWidth, draw }
+		);
+		const entry = stack(s, [line(s, 'entry', fields.entry, { size: size(50), weight: 800, color: palette.accent, gap: 0, upper: true })], {
+			x: WIDTH - PAD, bottom: HEIGHT - PAD, align: 'right', maxWidth: WIDTH - PAD * 2 - leftWidth - 40, draw
+		});
+		return { when, entry, top: Math.min(when.top, entry.top) };
+	};
 
-	// The print fills what is left between, tilted, clear of the head and the foot
-	const angle = -0.045;
+	// A shorter print gives up room; the foot's type grows into some of it, the print keeps its share
 	const top = head.bottom + 50;
-	const bottom = Math.min(when.top, entry.top) - 60;
+	const plain = foot(1, false);
+	const room = plain.top - 60 - top;
+	const printH = room * s.art.printScale;
+	const footH = HEIGHT - PAD - plain.top;
+	const grow = Math.min(1.6, (footH + (room - printH) * 0.6) / footH);
+	const { when, entry, top: footTop } = foot(grow, true);
+	if (when.text.date) when.text.date.wrap = true;
+
+	// The print sits between, tilted, clear of the head and the foot
+	const angle = -0.045;
+	const bottom = footTop - 60;
 	// A shorter print widens, so it still fills the space, up to the side margins
-	const card = { w: Math.min(WIDTH - PAD * 2 - 20, 700 / s.art.printScale), h: (bottom - top) * s.art.printScale };
+	const card = { w: Math.min(WIDTH - PAD * 2 - 20, 700 / s.art.printScale), h: Math.min(printH, bottom - top) };
 	const cx = WIDTH / 2;
 	const cy = (top + bottom) / 2;
 	const photo = { x: -card.w / 2 + 36, y: -card.h / 2 + 36, w: card.w - 72, h: card.h - 36 - 110 };
@@ -808,10 +840,18 @@ function polaroid(s: Scene): FlierLayout {
 	const end = Math.min(card.w / 2 - 180, qrX - qrSize / 2 - 20);
 	const [right, baseline] = turn(cx, cy, angle, end, card.h / 2 - 42);
 	const tagline = drawTagline(s, right, baseline, PRINT_INK, { tilt: angle, maxWidth: end + card.w / 2 - 70, size: 38 });
+	// The tagline's callout joins the left, just above the date's
+	tagline.side = 'left';
+	if (when.text.date) tagline.sortY = when.text.date.y - 1;
+	const shot = { x: cx + photo.x, y: cy + photo.y, w: photo.w, h: photo.h };
 	return {
-		photo: { x: cx + photo.x, y: cy + photo.y, w: photo.w, h: photo.h },
+		photo: shot,
 		qr,
-		field: [WIDTH - 28, cy],
+		// The right margin is clear all the way down, so the colour callout sits mid flier with a level line
+		field: [WIDTH - 28, HEIGHT / 2],
+		fieldSpan: [PAD, HEIGHT - PAD],
+		photoAnchor: [shot.x + 28, shot.y + 24],
+		photoCalloutY: 200,
 		text: { ...head.text, ...when.text, ...entry.text, tagline }
 	};
 }
@@ -821,25 +861,45 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 	const { ctx, palette, fields, art } = s;
 	const allowed = SHAPES.filter((c) => !!c.round === square);
 	const shape = allowed.find((c) => c.name === art.shape) ?? allowed[0];
-	const details = [
-		line(s, 'venue', fields.venue, { size: 54, weight: 800, color: palette.accent, gap: 0, upper: true }),
+	// The venue may wrap, in the column the corner QR code leaves it
+	const detailsFor = (width: number) => [
+		...wrap(ctx, fields.venue, `800 54px ${FONT}`, width, 2).map((part, i) =>
+			line(s, 'venue', part, { size: 54, weight: 800, color: palette.accent, gap: i ? 10 : 0, upper: true })
+		),
 		...addressLines(s, (i) => ({ size: 30, weight: 500, color: palette.text, gap: i ? 14 : 22 })),
 		line(s, 'entry', fields.entry, { size: 44, weight: 800, color: palette.accent, gap: 30, upper: true })
 	];
-	// Their height does not hang on their width, so a measuring pass places the shape above them
-	const detailsTop = stack(s, details, { x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: WIDTH - PAD * 2, draw: false }).top;
-	// The shape fills the right side down to just over the QR code and the details
-	const slotBottom = shape.round ? detailsTop - 50 : Math.min(HEIGHT - PAD - 230 - 36, detailsTop - 50);
-	const slot = { x: 452, y: PAD, w: WIDTH - PAD - 452, h: slotBottom - PAD };
 	// Held to the slot; its largest size fills it
 	const scale = Math.min(1, art.shapeScale * SHAPE_GROW);
+	// The details decide the shape's room, the shape the QR code's size, and that the details'
+	// width; a measuring pass settles it, and a second if the venue then wraps onto another line
+	const settle = (width: number) => {
+		const details = detailsFor(width);
+		const detailsTop = stack(s, details, { x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: width, draw: false }).top;
+		// The shape fills the right side down to just over the QR code and the details
+		const slotBottom = shape.round ? detailsTop - 50 : Math.min(HEIGHT - PAD - QR_MIN - QR_GAP, detailsTop - 50);
+		// Round shapes leave at least the smallest QR code beside them
+		const d = Math.min(slotBottom - ROUND_TOP, WIDTH - PAD * 2 - QR_GAP - QR_MIN) * scale;
+		// Beside a portrait shape the QR code grows up into the room a smaller shape leaves under
+		// it, keeping clear of the date column and leaving the details some width
+		const portraitFoot = PAD + (slotBottom - PAD) * scale;
+		const qrSize = shape.round
+			? Math.min(WIDTH - PAD - (PAD + d + QR_GAP), HEIGHT - PAD - DATE_TOP_BOTTOM - 110)
+			: clamp(HEIGHT - PAD - portraitFoot - QR_GAP, 230, Math.min(WIDTH - PAD - 452, WIDTH - PAD * 2 - 40 - 380));
+		const textWidth = s.link ? WIDTH - PAD * 2 - qrSize - 40 : WIDTH - PAD * 2;
+		return { details, slotBottom, d, qrSize, textWidth };
+	};
+	let fit = settle(WIDTH - PAD * 2);
+	fit = settle(fit.textWidth);
+	const { details, slotBottom, d, qrSize, textWidth } = fit;
+	const slot = { x: 452, y: PAD, w: WIDTH - PAD - 452, h: slotBottom - PAD };
 	// Stretchable shapes fill the slot on the right. Round ones would be held to its width,
-	// so they take the whole lower left under the logo instead, and the date moves top right.
-	// leaving at least the smallest QR code beside it, and centred between the logo and the venue
-	const d = Math.min(slotBottom - ROUND_TOP, WIDTH - PAD * 2 - 40 - QR_MIN) * scale;
+	// so they take the lower left under the logo instead, centred between it and the venue,
+	// and the date moves top right.
 	const photo = shape.round
 		? { x: PAD, y: (ROUND_TOP + slotBottom - d) / 2, w: d, h: d }
-		: { x: slot.x + (slot.w * (1 - scale)) / 2, y: slot.y + (slot.h * (1 - scale)) / 2, w: slot.w * scale, h: slot.h * scale };
+		// Held to the top of its slot, so the room it gives up gathers under it for the QR code
+		: { x: slot.x + (slot.w * (1 - scale)) / 2, y: slot.y, w: slot.w * scale, h: slot.h * scale };
 	fillPhoto(s, photo, () => shapePath(ctx, shape.name, photo));
 	ctx.save();
 	ctx.strokeStyle = palette.accent;
@@ -883,17 +943,27 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 	// Beside a round shape the QR code takes the width the shape leaves, so it shrinks as the
 	// shape grows, and sits down in the corner under the date and tagline, the details beside it.
 	// Otherwise it keeps the corner at its usual size.
-	const qrColumn = WIDTH - PAD - (PAD + d + 40);
-	const qrSize = shape.round ? Math.min(qrColumn, HEIGHT - PAD - DATE_TOP_BOTTOM - 110) : 230;
+	const qrColumn = WIDTH - PAD - (PAD + d + QR_GAP);
 	const qr = drawQr(s, WIDTH - PAD - qrSize / 2, HEIGHT - PAD - qrSize / 2, qrSize, palette.bg);
-	const info = stack(s, details, {
-		x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: s.link ? WIDTH - PAD * 2 - qrSize - 40 : WIDTH - PAD * 2
-	});
+	const info = stack(s, details, { x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: textWidth });
+	if (info.text.venue) info.text.venue.wrap = true;
 	// Written under the time in the date's column
 	const tagline = shape.round
 		? drawTagline(s, WIDTH - PAD, DATE_TOP_BOTTOM + 64, palette.accent, { maxWidth: qrColumn })
 		: drawTagline(s, PAD + 360, DATE_BOTTOM + 64, palette.accent, { maxWidth: 360 });
-	return { photo, qr, field: shape.round ? [WIDTH - 28, DATE_TOP_BOTTOM + 120] : [WIDTH - 28, slotBottom + 30], text: { ...date.text, ...info.text, tagline } };
+	// Beside a portrait shape the tagline sits in the date's column, so its callout joins the left
+	if (!shape.round) tagline.side = 'left';
+	return {
+		photo,
+		qr,
+		// Beside a portrait shape the right margin is clear all the way down: a level line, mid flier
+		field: shape.round ? [WIDTH - 28, DATE_TOP_BOTTOM + 120] : [WIDTH - 28, HEIGHT / 2],
+		fieldSpan: shape.round ? undefined : [PAD, HEIGHT - PAD],
+		photoAnchor: shape.round ? undefined : [photo.x + 28, photo.y + photo.h * 0.12],
+		// Its callout and menu start at the top of the column, above the date's
+		photoCalloutY: shape.round ? undefined : 0,
+		text: { ...date.text, ...info.text, tagline }
+	};
 }
 
 // An admission ticket: logo and venue at its head, the picture under them, the stub's fields below the tear line
@@ -973,7 +1043,14 @@ function ticket(s: Scene): FlierLayout {
 		return row;
 	});
 	const qr = drawQr(s, t.x + t.w - 40 - qrSize / 2, (tear + t.y + t.h) / 2, qrSize, paper);
-	return { photo, qr, field: [WIDTH - 28, 160], text: Object.assign({ tagline }, head.text, ...rows) };
+	return {
+		photo,
+		qr,
+		// Down beside the photo, so the colour callout falls under the venue and address
+		field: [WIDTH - 28, photo.y + 60],
+		photoAnchor: [photo.x + 28, photo.y + photo.h * 0.15],
+		text: Object.assign({ tagline }, head.text, ...rows)
+	};
 }
 
 // Symmetrical: the photo cut to a shape in the middle, logo across its foot, details centred beneath
