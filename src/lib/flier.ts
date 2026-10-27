@@ -67,12 +67,12 @@ export const PALETTES: Palette[] = [
 	{ name: 'Sky', bg: '#cfe1e4', text: '#3c3836', accent: '#076678', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
 	{ name: 'Powder', bg: '#dde3ea', text: '#3c3836', accent: '#8f3f71', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
 	{ name: 'Lilac', bg: '#d8c4dc', text: '#3c3836', accent: '#8f3f71', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
-	// Dark: mid tones, deeper blues and a red, the darkest
+	// Dark: mid tones, a plum, deeper blues and a red, the darkest
 	{ name: 'Sage', bg: '#6f9c5e', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.3)', logo: 'light', qrBare: '#fbf1c7' },
 	{ name: 'Teal', bg: '#3d8a85', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.35)', logo: 'bright', qrBare: '#fbf1c7' },
 	{ name: 'Rose', bg: '#c26592', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.3)', logo: 'original', qrBare: '#fbf1c7' },
 	{ name: 'Clay', bg: '#a5563a', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.35)', logo: 'original' },
-	{ name: 'Slate', bg: '#4c6470', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
+	{ name: 'Plum', bg: '#5e3a5a', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
 	{ name: 'Denim', bg: '#34506b', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
 	{ name: 'Blue', bg: '#076678', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
 	{ name: 'Brick', bg: '#7a3b2e', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
