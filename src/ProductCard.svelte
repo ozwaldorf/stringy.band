@@ -29,7 +29,9 @@
 			`--tilt: ${next(-1.5, 1.5).toFixed(2)}deg`,
 			`--shift-x: ${next(-4, 4).toFixed(1)}px`,
 			`--shift-y: ${next(-4, 4).toFixed(1)}px`,
-			`--tape-tilt: ${next(-5, 5).toFixed(1)}deg`
+			`--tape-tilt: ${next(-5, 5).toFixed(1)}deg`,
+			`--tear-shift: ${next(0, 25).toFixed(1)}rem`,
+			`--tear-tile: ${next(19, 31).toFixed(1)}rem`
 		].join('; ');
 	});
 

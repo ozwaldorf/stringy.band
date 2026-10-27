@@ -28,7 +28,7 @@
 
 <div class="shop-page">
 	<header>
-		<span class="paper" aria-hidden="true"></span>
+		<span class="paper" aria-hidden="true" style="--tear-shift: 17rem"></span>
 		<a class="brand" href="/" aria-label="Stringy and the Beans home"><Logo /></a>
 		<nav class="crumbs" aria-label="Breadcrumb">
 			<ol>

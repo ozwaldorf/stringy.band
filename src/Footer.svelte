@@ -1,5 +1,5 @@
 <footer>
-	<span class="paper up" aria-hidden="true"></span>
+	<span class="paper up" aria-hidden="true" style="--tear-shift: 9rem; --tear-tile: 29rem"></span>
 	<small>&copy; {new Date().getFullYear()} Stringy and the Beans</small>
 </footer>
 

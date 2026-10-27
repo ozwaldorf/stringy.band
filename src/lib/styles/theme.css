@@ -120,6 +120,8 @@ html {
    header fades it in with --dock and stretches it up with --reach */
 .paper {
 	position: absolute;
+	/* --tear-shift and --tear-tile pick where along the tear strip a sheet starts and how
+	   stretched it is, so neighbouring sheets do not tear alike */
 	/* --reach extends the sheet up to the top of the screen before docking */
 	top: calc(-1 * var(--reach, 0px));
 	left: 0;
@@ -144,10 +146,10 @@ html {
 	background-repeat: repeat, repeat, repeat, no-repeat;
 	-webkit-mask:
 		linear-gradient(#000 0 0) top / 100% calc(100% - var(--tear) + 3px) no-repeat,
-		var(--torn-edge) bottom / 25rem var(--tear) repeat-x;
+		var(--torn-edge) var(--tear-shift, 0px) bottom / var(--tear-tile, 25rem) var(--tear) repeat-x;
 	mask:
 		linear-gradient(#000 0 0) top / 100% calc(100% - var(--tear) + 3px) no-repeat,
-		var(--torn-edge) bottom / 25rem var(--tear) repeat-x;
+		var(--torn-edge) var(--tear-shift, 0px) bottom / var(--tear-tile, 25rem) var(--tear) repeat-x;
 }
 
 /* Flipped sheet with the torn edge on top, for the footer */

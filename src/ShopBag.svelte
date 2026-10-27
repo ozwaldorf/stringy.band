@@ -91,7 +91,7 @@
 			</ul>
 			<div class="continue-row"><a class="continue" href="/shop">Continue shopping</a></div>
 		</div>
-		<div class="bag-summary note torn">
+		<div class="bag-summary note torn" style="--tear-shift: 13rem; --tear-tile: 28rem">
 			<span class="paper plain" aria-hidden="true"></span>
 			<h2>Order summary</h2>
 			{#if currencies.length === 1}
