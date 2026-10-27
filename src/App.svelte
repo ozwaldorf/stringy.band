@@ -7,9 +7,14 @@
 	let path = $state(window.location.pathname.replace(/\/+$/, '') || '/');
 
 	async function updatePath() {
-		path = window.location.pathname.replace(/\/+$/, '') || '/';
+		const next = window.location.pathname.replace(/\/+$/, '') || '/';
+		// In-page hash links fire popstate too; leave their scrolling to the browser
+		if (next === path) return;
+		path = next;
 		await tick();
-		window.scrollTo(0, 0);
+		const target = window.location.hash && document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+		if (target) target.scrollIntoView({ behavior: 'instant' });
+		else window.scrollTo(0, 0);
 		document.querySelector<HTMLElement>('main h1[tabindex], main[tabindex]')?.focus({ preventScroll: true });
 	}
 
@@ -31,7 +36,7 @@
 
 			const url = new URL(anchor.href, window.location.href);
 			if (url.origin !== window.location.origin) return;
-			if (url.hash || (url.pathname === window.location.pathname && url.search === window.location.search)) return;
+			if (url.pathname === window.location.pathname && url.search === window.location.search) return;
 
 			event.preventDefault();
 			window.history.pushState({}, '', url);

@@ -72,7 +72,7 @@
 </script>
 
 {#if current}
-	<section aria-label="Videos">
+	<section id="videos" aria-label="Videos">
 		<h1>Latest Videos</h1>
 		<div class="frame" bind:this={frame}>
 			<div class="mat">

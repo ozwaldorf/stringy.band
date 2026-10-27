@@ -81,7 +81,7 @@
 	}
 </script>
 
-<section aria-label="Shows">
+<section id="shows" aria-label="Shows">
 	<h1>Shows</h1>
 
 	<h2>Upcoming</h2>
