@@ -195,7 +195,7 @@ export function flierFields(show: Show): FlierFields {
 		date: formatFlierDate(show.start),
 		entry: 'Free entry',
 		tagline: '',
-		link: `https://stringy.band/#${show.anchor}`
+		link: show.tickets ?? `https://stringy.band/#${show.anchor}`
 	};
 }
 
