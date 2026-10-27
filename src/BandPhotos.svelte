@@ -3,6 +3,7 @@
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { fade } from 'svelte/transition';
 	import BandPhoto from './BandPhoto.svelte';
+	import Bean from './Bean.svelte';
 	import { landscapePhotos, portraitPhotos, type Photo } from './lib/photos';
 
 	// Fisher-Yates, so each visit opens on a different set
@@ -137,6 +138,7 @@
 			bind:element={elements[print]}
 		/>
 	{/each}
+	<span class="corner-bean"><Bean which="a" size="4.25rem" /></span>
 </div>
 
 {#if held !== null && lifted !== null}
@@ -195,6 +197,15 @@
 		width: calc(56% * 0.75 + 2.8 * 0.75rem);
 		--tilt: 3deg;
 		--tape-tilt: -4deg;
+	}
+
+	/* In the open corner below the portrait print and beside the last one */
+	.corner-bean {
+		position: absolute;
+		right: 22%;
+		bottom: 8%;
+		rotate: -12deg;
+		pointer-events: none;
 	}
 
 	.band-photos :global(.third) {

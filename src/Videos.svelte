@@ -1,6 +1,7 @@
 <script lang="ts">
 	import data from './lib/videos.json';
 	import SectionHeading from './SectionHeading.svelte';
+	import Bean from './Bean.svelte';
 
 	const CYCLE_MS = 15_000;
 
@@ -99,6 +100,7 @@
 					{/each}
 				</div>
 			</div>
+			<span class="frame-bean"><Bean which="b" size="4rem" /></span>
 		</div>
 		{#if videos.length > 1}
 			<div class="dots">
@@ -128,6 +130,7 @@
 	}
 
 	.frame {
+		position: relative;
 		width: min(560px, 100%);
 		padding: 1.1rem;
 		border-radius: 6px;
@@ -138,6 +141,15 @@
 			inset 0 0 0 6px var(--gb-yellow),
 			inset 0 0 0 8px var(--gb-yellow-dim),
 			0 10px 28px rgba(40, 40, 40, 0.35);
+	}
+
+	/* Just off the bottom left corner of the frame */
+	.frame-bean {
+		position: absolute;
+		right: calc(100% + 0.5rem);
+		bottom: -4rem;
+		transform: scaleX(-1) rotate(-12deg);
+		pointer-events: none;
 	}
 
 	.mat {

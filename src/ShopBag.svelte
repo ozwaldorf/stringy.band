@@ -6,6 +6,7 @@
 	import { variantImage } from './lib/product-options';
 	import ShopHeading from './ShopHeading.svelte';
 	import ShopNotice from './ShopNotice.svelte';
+	import Bean from './Bean.svelte';
 
 	let checking = $state(false);
 	let notice = $state<{ kind: 'updated' | 'currency' | 'error'; title: string; message: string } | null>(null);
@@ -106,10 +107,13 @@
 {:else if $cart.length && $catalog.loading}
 	<ShopNotice title="Loading your bag..." />
 {:else if !$cart.length && (!notice || notice.kind === 'currency')}
+	<Bean which="b" size="5.5rem" dance class="empty-bean" />
 	<ShopNotice title="Your bag is empty" message="Find something for the next show." actionLabel="Browse merch" actionHref="/shop" />
 {/if}
 
 <style>
+	/* Waiting by the empty bag for something to hold */
+	:global(.empty-bean) { align-self: center; margin: 2.5rem 0 0.5rem; }
 	.bag-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 3rem; margin: 2.5rem 0 4rem; }
 	/* Items on a taped note, ruled off from each other */
 	.bag-items { padding: 0.75rem 1.75rem 0.75rem; transform: rotate(-0.4deg); --tape-tilt: 2deg; }

@@ -15,6 +15,7 @@
 	import ShopPreview from './ShopPreview.svelte';
 	import BandPhotos from './BandPhotos.svelte';
 	import SectionHeading from './SectionHeading.svelte';
+	import Bean from './Bean.svelte';
 	import Footer from './Footer.svelte';
 	import { glideTarget, glideTo, gliding } from './lib/scroll';
 
@@ -393,12 +394,15 @@
 	<section id="about" class="about" aria-label="About">
 		<div class="about-note note">
 			<p class="lead">Upstate NY bluegrass quintet</p>
-			<dl class="lineup">
-				{#each lineup as [instrument, name] (name)}
-					<dt>{instrument}</dt>
-					<dd>{name}</dd>
-				{/each}
-			</dl>
+			<div class="players">
+				<dl class="lineup">
+					{#each lineup as [instrument, name] (name)}
+						<dt>{instrument}</dt>
+						<dd>{name}</dd>
+					{/each}
+				</dl>
+				<Bean which="b" size="3.5rem" class="beside" />
+			</div>
 			<p>
 				Since forming in March 2026, the band has played at the Green Mountain Bluegrass &amp; Roots Festival, the
 				GottaGetGon Folk Festival, S&amp;S Farm Brewery's "Brewgrass" Festival, and venues all around the
@@ -747,6 +751,19 @@
 			var(--gb-bg1) calc(var(--line) - 1px) var(--line)
 		);
 		transform: rotate(-1deg);
+	}
+
+	/* Stands beside the lineup, off to its right; the pair shifts left to stay balanced */
+	.players {
+		position: relative;
+		translate: -1.5rem 0;
+	}
+
+	.players :global(.beside) {
+		position: absolute;
+		left: calc(100% + 1.5rem);
+		top: 50%;
+		transform: translateY(calc(-50% + 1.25rem)) rotate(8deg);
 	}
 
 	.about-note p {

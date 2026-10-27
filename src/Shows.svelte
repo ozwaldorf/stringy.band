@@ -8,6 +8,7 @@
 	import type { Show } from './lib/bandsintown';
 	import Vine from './Vine.svelte';
 	import SectionHeading from './SectionHeading.svelte';
+	import Bean from './Bean.svelte';
 
 	const all: Show[] = data.shows.map((s) => ({
 		...s,
@@ -174,6 +175,8 @@
 				{/each}
 			</ul>
 		</div>
+		<!-- Outside the faded list, so the bean keeps its full colour -->
+		<div class="end-bean"><Bean which="a" size="3.25rem" /></div>
 		{#if past.length > PAST_LIMIT}
 			<button class="past-more" onclick={() => (pastExpanded = !pastExpanded)}>
 				{#if pastExpanded}
@@ -325,6 +328,28 @@
 
 	.past {
 		opacity: 0.7;
+	}
+
+	/* Stands left of the "more shows" toggle at the foot of the list; no height of its own */
+	.end-bean {
+		position: relative;
+		width: 100%;
+		height: 0;
+		margin-top: -0.75rem;
+	}
+
+	.end-bean :global(.bean) {
+		position: absolute;
+		right: calc(50% + 7.5rem);
+		bottom: -4.5rem;
+		rotate: -8deg;
+	}
+
+	/* Phones have no room left of the dates */
+	@media (max-width: 768px) {
+		.end-bean {
+			display: none;
+		}
 	}
 
 	.past .summary {

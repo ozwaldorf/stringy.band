@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ShopNotice from './ShopNotice.svelte';
+	import Bean from './Bean.svelte';
 	import Footer from './Footer.svelte';
 	import './lib/styles/shop.css';
 </script>
@@ -8,6 +9,7 @@
 
 <div class="not-found">
 	<main>
+		<Bean which="a" size="6rem" dance class="lost" />
 		<h1 tabindex="-1">404</h1>
 		<ShopNotice title="Page not found" message="This page is not available. Head back to the band for music, shows, and merch." actionLabel="Back home" actionHref="/" />
 	</main>
@@ -32,6 +34,11 @@
 		flex-direction: column;
 		justify-content: center;
 		gap: 1rem;
+	}
+
+	/* A bean wandered off the page with you */
+	main :global(.lost) {
+		align-self: center;
 	}
 
 	h1 {

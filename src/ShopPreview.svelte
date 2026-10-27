@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import SectionHeading from './SectionHeading.svelte';
+	import Bean from './Bean.svelte';
 	import ProductCard from './ProductCard.svelte';
 	import { groupedProducts, refreshCatalog } from './lib/catalog';
 	import IconArrowRight from '~icons/carbon/arrow-right';
@@ -22,7 +23,10 @@
 			{#each featured as product (product.id)}<ProductCard {product} />{/each}
 		</div>
 	{/if}
-	<a class="shop-button shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
+	<div class="shop-link-row">
+		<a class="shop-button shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
+		<span class="button-bean"><Bean which="a" size="3.75rem" /></span>
+	</div>
 </section>
 
 <style>
@@ -46,12 +50,26 @@
 	}
 
 	/* Primary call to action, larger than the shop's own buttons */
+	/* Keeps the button centred; the bean hangs off its right side */
+	.shop-link-row {
+		position: relative;
+		width: fit-content;
+		margin: 2rem auto 0;
+	}
+
+	.button-bean {
+		position: absolute;
+		left: calc(100% + 0.75rem);
+		bottom: -2.25rem;
+		transform: scaleX(-1) rotate(-4deg);
+		pointer-events: none;
+	}
+
 	.shop-link {
 		display: flex;
 		gap: 0.6rem;
 		width: fit-content;
 		min-height: 3.25rem;
-		margin: 2rem auto 0;
 		padding-inline: 2rem;
 		font-size: 1.05rem;
 		font-weight: 700;
