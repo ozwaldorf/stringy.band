@@ -1002,15 +1002,20 @@ function ticket(s: Scene): FlierLayout {
 	ctx.shadowBlur = 30;
 	ctx.shadowOffsetY = 12;
 	ctx.fillStyle = paper;
-	roundRect(ctx, t.x, t.y, t.w, t.h, 28);
+	// Notches either end of the tear line are cut from the outline, so the shadow follows them
+	const r = 28;
+	const [left, right, bottom] = [t.x, t.x + t.w, t.y + t.h];
+	ctx.beginPath();
+	ctx.moveTo(left + r, t.y);
+	ctx.arcTo(right, t.y, right, bottom, r);
+	ctx.arc(right, tear, 30, -Math.PI / 2, Math.PI / 2, true);
+	ctx.arcTo(right, bottom, left, bottom, r);
+	ctx.arcTo(left, bottom, left, t.y, r);
+	ctx.arc(left, tear, 30, Math.PI / 2, -Math.PI / 2, true);
+	ctx.arcTo(left, t.y, right, t.y, r);
+	ctx.closePath();
+	ctx.fill();
 	ctx.restore();
-	// Notches either end of the tear line
-	ctx.fillStyle = palette.bg;
-	for (const x of [t.x, t.x + t.w]) {
-		ctx.beginPath();
-		ctx.arc(x, tear, 30, 0, Math.PI * 2);
-		ctx.fill();
-	}
 	ctx.save();
 	ctx.strokeStyle = ink;
 	ctx.globalAlpha = 0.35;
