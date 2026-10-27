@@ -524,10 +524,22 @@ function stack(
 }
 
 // A small spaced-out caption, like a ticket's field names
-function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, baseline: number, color: string, size = 22) {
+function labelWidth(ctx: CanvasRenderingContext2D, text: string, size = 22) {
 	ctx.save();
+	labelFont(ctx, size);
+	const w = ctx.measureText(text).width;
+	ctx.restore();
+	return w;
+}
+
+function labelFont(ctx: CanvasRenderingContext2D, size: number) {
 	ctx.font = `700 ${size}px ${FONT}`;
 	ctx.letterSpacing = `${size * 0.18}px`;
+}
+
+function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, baseline: number, color: string, size = 22) {
+	ctx.save();
+	labelFont(ctx, size);
 	ctx.fillStyle = color;
 	ctx.fillText(text, x, baseline);
 	ctx.restore();
@@ -933,10 +945,16 @@ function ticket(s: Scene): FlierLayout {
 	const tagline = drawTagline(s, photo.x + photo.w - 24, photo.y + photo.h - 30, '#fbf1c7', { shadow: 'rgba(0, 0, 0, 0.8)' });
 
 	drawLabel(ctx, 'ADMIT ONE', t.x + 44, tear + 64, mark, 24);
-	const qrSize = 210;
-	const valueX = t.x + 200;
+	// Values start just past the widest caption
+	const valueX = t.x + 44 + Math.max(...['DATE', 'TIME', 'ENTRY'].map((label) => labelWidth(ctx, label))) + 28;
+	// The QR code takes the room the widest value leaves, up to the stub's own height
+	ctx.save();
+	ctx.font = `800 40px ${FONT}`;
+	const widest = Math.max(...(['date', 'time', 'entry'] as const).map((key) => ctx.measureText(fields[key].toUpperCase()).width));
+	ctx.restore();
+	const qrSize = clamp(t.x + t.w - 40 - valueX - widest - 30, 230, t.y + t.h - tear - 48);
 	const maxWidth = t.x + t.w - 40 - qrSize - 30 - valueX;
-	// Rows and QR code share one middle, in the stub below ADMIT ONE
+	// Rows centre in the stub below ADMIT ONE; the QR code, bigger, centres on the whole stub
 	const middle = (tear + 90 + t.y + t.h - 30) / 2;
 	const rowGap = 70;
 	const rows = (['date', 'time', 'entry'] as const).map((key, i) => {
@@ -954,7 +972,7 @@ function ticket(s: Scene): FlierLayout {
 		row[key]!.anchor = [t.x + 30, baseline - 12];
 		return row;
 	});
-	const qr = drawQr(s, t.x + t.w - 40 - qrSize / 2, middle, qrSize, paper);
+	const qr = drawQr(s, t.x + t.w - 40 - qrSize / 2, (tear + t.y + t.h) / 2, qrSize, paper);
 	return { photo, qr, field: [WIDTH - 28, 160], text: Object.assign({ tagline }, head.text, ...rows) };
 }
 
