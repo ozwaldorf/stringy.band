@@ -159,6 +159,8 @@
 		let dockLeft = 0;
 		let unit = 16;
 		let frame = 0;
+		// Scroll position last drawn, clamped to where docking ends
+		let drawn = -1;
 
 		const box = el.parentElement!;
 
@@ -180,6 +182,7 @@
 			paper.style.setProperty('--sheet-h', `${end}px`);
 			// The header is 3.5rem plus 0.5rem of top padding once docked
 			stick = Math.max(1, end - 4 * unit);
+			drawn = -1;
 			update();
 		};
 
@@ -193,7 +196,11 @@
 
 		const update = () => {
 			frame = 0;
+			// Read before any writes so the frame does not force a layout
+			const scrolled = window.scrollY;
 			if (!wide.matches || !start.height) {
+				if (drawn === -2) return;
+				drawn = -2;
 				el.classList.remove('pinned');
 				el.style.cssText = '';
 				dockSlot.style.width = '';
@@ -202,15 +209,19 @@
 				nav.style.transform = '';
 				return;
 			}
+			// Past the dock nothing moves
+			const at = Math.min(scrolled, Math.max(dock, stick));
+			if (at === drawn) return;
+			drawn = at;
 			el.classList.add('pinned');
 			el.style.left = `${start.left}px`;
 			el.style.top = `${start.top}px`;
-			const p = Math.min(1, Math.max(0, window.scrollY / stick));
+			const p = Math.min(1, Math.max(0, scrolled / stick));
 			setSlot(p);
 			nav.style.setProperty('--dock', String(p));
 			// Sticky alone would pin the links as soon as they reach the top; hold them
 			// back so they travel in step with the logo and the sheet
-			nav.style.transform = `translateY(${dock * (1 - p) - Math.max(0, dock - window.scrollY)}px)`;
+			nav.style.transform = `translateY(${dock * (1 - p) - Math.max(0, dock - scrolled)}px)`;
 			const height = 2.5 * unit;
 			const x = (dockLeft - start.left) * p;
 			// Docked logo sits 0.5rem down in the header plus the docked top padding
@@ -479,6 +490,9 @@
 		/* The open phone menu pulls the whole sheet down by its height */
 		transform: translateY(var(--open-extra, 0px));
 		transition: transform 220ms cubic-bezier(0.33, 1, 0.68, 1);
+		/* Its own layer: otherwise Firefox repaints the masked, shadowed sheet on
+		   every scrolled frame */
+		will-change: transform;
 	}
 
 
