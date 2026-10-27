@@ -33,6 +33,7 @@
 		type Frame,
 		type FlierLayout,
 		type Lut,
+		type TextBox,
 		type TextKey
 	} from './lib/flier-canvas';
 	import { landscapePhotos, portraitPhotos, type Photo } from './lib/photos';
@@ -602,14 +603,22 @@
 	}
 
 	// An editor over the text, set in the same type so the flier reads the same while typing
+	// How far down its line box CSS sets a line's baseline: half the leading, then the font's ascent
+	const metrics = document.createElement('canvas').getContext('2d')!;
+	function baselineDrop(box: TextBox) {
+		metrics.font = `${box.weight} ${box.size}px ${box.family}`;
+		const { fontBoundingBoxAscent: ascent, fontBoundingBoxDescent: descent } = metrics.measureText('x');
+		return (box.lineHeight - ascent - descent) / 2 + ascent;
+	}
+
 	function editorStyle(key: TextKey) {
 		// An editor being torn down after a tap moved on can be asked again for text no longer laid out
 		const box = layout?.text[key];
 		if (!box) return 'display: none';
-		// A joined up address still edits one line per line typed
-		const lines = key === 'address' ? Math.max(box.baselines.length, fields.address.split('\n').length) : 1;
+		// One line per line typed, even where the flier joins them up
+		const lines = Math.max(box.baselines.length, fields[key].split('\n').length);
 		const { lineHeight } = box;
-		const top = (box.baselines[0] - box.size * 0.36 - lineHeight / 2) * k;
+		const top = (box.baselines[0] - baselineDrop(box)) * k;
 		const left = box.span[0] * k;
 		const width = box.span[1] * k;
 		const height = box.wrap ? 0 : lineHeight * lines * k;
@@ -628,6 +637,7 @@
 			`outline-width: ${f}px`,
 			`outline-offset: ${2 * f}px`,
 			`--ink: ${box.color}`,
+			...(box.shadow ? [`text-shadow: 0 0 ${12 * k * f}px ${box.shadow}`] : []),
 			`text-transform: ${box.upper ? 'uppercase' : 'none'}`,
 			`text-align: ${box.align}`,
 			`transform: rotate(${box.rotate}rad) scale(${1 / f})`,
@@ -1024,7 +1034,6 @@
 			     editors mid-tap lost focus on phones, and the keyboard with it -->
 			<textarea
 				class="editor"
-				class:own={editing && layout?.text[editing]?.own}
 				class:idle={!editing}
 				style={editing ? editorStyle(editing) : ''}
 				value={editing ? fields[editing] : ''}
@@ -1037,12 +1046,6 @@
 				bind:this={editorEl}
 				oninput={(e) => editing && (fields[editing] = e.currentTarget.value)}
 				onblur={() => editing && closeEditor(editing)}
-				onkeydown={(e) => {
-					// Only the address takes more than one line; Enter finishes the rest
-					if (e.key !== 'Enter' || editing === 'address') return;
-					e.preventDefault();
-					editorEl?.blur();
-				}}
 				{@attach autoGrow}
 			></textarea>
 		</div>
@@ -1509,8 +1512,8 @@
 		outline: 1px dashed var(--ink);
 		outline-offset: 2px;
 		background: transparent;
-		/* The flier draws the text underneath as it will print; only the caret and selection show */
-		color: transparent;
+		/* The flier leaves the text being typed undrawn; the editor shows it, set as close to the print as it can */
+		color: var(--ink);
 		caret-color: var(--ink);
 		letter-spacing: 0;
 		resize: none;
@@ -1527,22 +1530,13 @@
 		pointer-events: none;
 	}
 
-	.editor.own {
-		color: var(--ink);
-	}
-
 	.editor::placeholder {
 		color: var(--ink);
 		opacity: 0.45;
 	}
 
 	.editor::selection {
-		color: transparent;
 		background: color-mix(in srgb, var(--ink) 30%, transparent);
-	}
-
-	.editor.own::selection {
-		color: var(--ink);
 	}
 
 	.ring {

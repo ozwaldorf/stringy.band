@@ -141,8 +141,8 @@ export type TextBox = Box & {
 	end: number;
 	// One value broken over several lines, so it edits wrapping across them all
 	wrap?: boolean;
-	// Drawn too unlike its plain text to type over, so the editor shows its own text instead
-	own?: boolean;
+	// The glow it is set with to read over a photo
+	shadow?: string;
 };
 
 export type FlierLayout = {
@@ -247,12 +247,11 @@ type Scene = {
 	qr: QrStyle;
 	art: FlierArt;
 	link: string;
+	// Left undrawn, under the editor that shows it while it is typed, but still laid out so the editor has its place
 	editing?: TextKey;
-	// Left undrawn, under an editor that shows its own text
-	hide?: TextKey;
 };
 
-// `editing` keeps its place while empty, for an editor over it; it is still drawn, so typing shows as it will print
+// `editing` keeps its place while empty, for the editor over it
 export function drawFlier(
 	ctx: CanvasRenderingContext2D,
 	fields: FlierFields,
@@ -393,29 +392,38 @@ function drawTagline(
 		shadow,
 		maxWidth = TAGLINE_WIDTH,
 		size: start = 32,
-		center = false
-	}: { tilt?: number; shadow?: string; maxWidth?: number; size?: number; center?: boolean } = {}
+		center = false,
+		down = false
+	}: { tilt?: number; shadow?: string; maxWidth?: number; size?: number; center?: boolean; down?: boolean } = {}
 ): TextBox {
+	// Lines it breaks onto stack up from the baseline, so the last sits where a single line would,
+	// or with `down`, hang from it into room below
 	const text = fields.tagline.trim();
+	const parts = text.split('\n').map((part) => part.trim()).filter(Boolean);
 	ctx.save();
 	ctx.translate(x, baseline);
 	ctx.rotate(tilt);
+	const widest = () => Math.max(0, ...parts.map((part) => ctx.measureText(part).width));
 	let size = start;
 	do ctx.font = `${size--}px ${SCRIPT}`;
-	while (size > 20 && ctx.measureText(text).width > maxWidth);
+	while (size > 20 && widest() > maxWidth);
 	size++;
+	const lineHeight = size * 1.8;
+	const extra = Math.max(0, parts.length - 1) * lineHeight;
+	const above = down ? 0 : extra;
 	ctx.fillStyle = color;
 	ctx.textAlign = center ? 'center' : 'right';
 	if (shadow) {
 		ctx.shadowColor = shadow;
 		ctx.shadowBlur = 12;
 	}
-	if (text) ctx.fillText(text, 0, 0, maxWidth);
-	const w = Math.max(ctx.measureText(text).width, 280);
+	if (editing !== 'tagline') parts.forEach((part, i) => ctx.fillText(part, 0, i * lineHeight - above, maxWidth));
+	const w = Math.max(widest(), 280);
 	ctx.restore();
 	return {
-		x: center ? x - w / 2 : x - w, y: baseline - size, w, h: size * 1.4, baselines: [baseline], size, weight: 400, family: SCRIPT,
-		color, upper: false, lineHeight: size * 1.8, align: center ? 'center' : 'right', rotate: tilt,
+		x: center ? x - w / 2 : x - w, y: baseline - above - size, w, h: size * 1.4 + extra,
+		baselines: parts.length > 1 ? parts.map((_, i) => baseline - above + i * lineHeight) : [baseline], size, weight: 400, family: SCRIPT,
+		color, upper: false, lineHeight, shadow, align: center ? 'center' : 'right', rotate: tilt,
 		span: center ? [x - maxWidth / 2, maxWidth] : [x - maxWidth, maxWidth],
 		empty: !text && editing !== 'tagline',
 		end: center ? x + w / 2 : x
@@ -444,6 +452,8 @@ function line({ editing }: Scene, key: TextKey, text: string, spec: LineSpec): L
 
 // Words broken into lines that fit `maxWidth` at the given type, the last taking whatever is left
 function wrap(ctx: CanvasRenderingContext2D, text: string, font: string, maxWidth: number, maxLines: number): string[] {
+	// Returns typed into the text break it there first
+	if (text.trim().includes('\n')) return text.trim().split('\n').flatMap((part) => wrap(ctx, part, font, maxWidth, maxLines));
 	ctx.save();
 	ctx.font = font;
 	const lines: string[] = [];
@@ -484,6 +494,16 @@ function stack(
 	{ x, bottom, align, maxWidth, draw = true }: { x: number; bottom: number; align: Align; maxWidth: number; draw?: boolean }
 ) {
 	const { ctx } = s;
+	// A line with returns typed into it sets as several, each close under the one before; blank
+	// ones only hold their place while being typed
+	lines = lines.flatMap((line) => {
+		if (!line.text.includes('\n')) return [line];
+		const parts = line.text.split('\n').map((part) => part.trim());
+		const kept = line.key === s.editing ? parts : parts.filter(Boolean);
+		return kept.map((text, i) => ({
+			...line, text, gap: i ? Math.round(line.size * 0.25) : line.gap, suffix: i === kept.length - 1 ? line.suffix : undefined
+		}));
+	});
 	ctx.save();
 	ctx.textBaseline = 'alphabetic';
 	ctx.textAlign = align;
@@ -527,7 +547,7 @@ function stack(
 		y = baseline;
 		ctx.font = `${line.weight} ${line.size}px ${FONT}`;
 		ctx.fillStyle = line.color;
-		if (draw && line.key !== s.hide) {
+		if (draw && line.key !== s.editing) {
 			// The suffix follows the main text, which moves over to keep the pair aligned as one
 			const start = (align === 'left' ? x : align === 'right' ? x - line.width : x - line.width / 2) + (line.shift ?? 0);
 			ctx.textAlign = 'left';
@@ -961,17 +981,15 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 				line(s, 'date', parts[2].slice(0, 3), { size: 110, weight: 800, color: palette.accent, gap: 30, upper: true })
 			]
 		: [line(s, 'date', fields.date, { size: 56, weight: 800, color: palette.text, gap: 0, upper: true })];
-	if (parts && s.editing === 'date') s.hide = 'date';
 	const date = stack(
 		s,
 		[...dateLines, line(s, 'time', fields.time, { size: 50, weight: 800, color: palette.text, gap: 44, upper: true })],
 		column
 	);
-	s.hide = undefined;
 	// Edited as one plain line, not at poster size
 	const box = date.text.date;
 	if (box && parts) {
-		Object.assign(box, { size: 56, lineHeight: 70, baselines: [box.y + box.h / 2 + 20], span: [PAD, WIDTH - PAD * 2], own: true });
+		Object.assign(box, { size: 56, lineHeight: 70, baselines: [box.y + box.h / 2 + 20], span: [PAD, WIDTH - PAD * 2] });
 	}
 
 	// Beside a round shape the QR code takes the width the shape leaves, so it shrinks as the
@@ -1136,7 +1154,7 @@ function cassette(s: Scene): FlierLayout {
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.fillStyle = mark;
-	const spine = [fields.venue, fields.date].map((t) => t.trim().toUpperCase()).filter(Boolean).join('  /  ');
+	const spine = [fields.venue, fields.date].map((t) => t.trim().replace(/\s+/g, ' ').toUpperCase()).filter(Boolean).join('  /  ');
 	ctx.fillText(spine, 0, 0, c.h - 120);
 	ctx.restore();
 
@@ -1245,7 +1263,8 @@ function strip(s: Scene): FlierLayout {
 	// The type grows to fill the room between the logo and the QR code, less the tagline's when it has one
 	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
 	const top = logoBottom + 100;
-	const room = HEIGHT - PAD - QR_SIZE - 56 - top - (showTagline ? 100 : 0);
+	const taglineLines = fields.tagline.split('\n').filter((part) => part.trim()).length;
+	const room = HEIGHT - PAD - QR_SIZE - 56 - top - (showTagline ? 100 + Math.max(0, taglineLines - 1) * 80 : 0);
 	let grow = 1.8;
 	while (grow > 1 && tall(linesAt(grow)) > room) grow -= 0.05;
 	const lines = linesAt(grow);
@@ -1253,14 +1272,20 @@ function strip(s: Scene): FlierLayout {
 	const info = stack(s, lines, { x: left, bottom, align: 'left', maxWidth: width });
 	if (info.text.venue) info.text.venue.wrap = true;
 	if (info.text.date) info.text.date.wrap = true;
-	const tagline = drawTagline(s, WIDTH - PAD, bottom + 90, palette.accent, { maxWidth: width, size: Math.round(32 * Math.min(grow, 1.4)) });
+	// The strip fills the left, so the details' callouts join on the right where they end
+	for (const box of Object.values(info.text)) box.side = 'right';
+	// Centred in the column, close under the details
+	const tagline = drawTagline(s, left + width / 2, bottom + 66, palette.accent, {
+		maxWidth: width, size: Math.round(32 * Math.min(grow, 1.4)), down: true, center: true
+	});
+	tagline.side = 'right';
 	const qr = drawQr(s, WIDTH - PAD - QR_SIZE / 2, HEIGHT - PAD - QR_SIZE / 2, QR_SIZE, palette.bg);
 	return {
 		photo: print,
 		frames,
 		qr,
-		field: [WIDTH - 28, HEIGHT / 2],
-		fieldSpan: [PAD, HEIGHT - PAD],
+		// Over the top margin, so the colour callout heads the right column
+		field: [WIDTH - 28, 20],
 		text: { ...info.text, tagline }
 	};
 }
@@ -1285,8 +1310,7 @@ function shapes(s: Scene): FlierLayout {
 	});
 	const when = pair(s, tx, entry.top - 26, maxWidth);
 	const address = fields.address.split('\n').map((part) => part.trim().replace(/,$/, '')).filter(Boolean).join(', ');
-	// Joined on one line, so it edits as its separate lines in an editor of its own
-	if (s.editing === 'address') s.hide = 'address';
+	// Joined on one line, but edited as the separate lines typed
 	const where = stack(
 		s,
 		[
@@ -1298,8 +1322,6 @@ function shapes(s: Scene): FlierLayout {
 		],
 		{ x: tx, bottom: when.top - 30, align: 'center', maxWidth }
 	);
-	s.hide = undefined;
-	if (where.text.address) where.text.address.own = true;
 	if (where.text.venue) where.text.venue.wrap = true;
 	// The tagline sits centred over the details, lifting the logo when there is one
 	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
@@ -1347,8 +1369,8 @@ function pair(s: Scene, cx: number, baseline: number, maxWidth: number) {
 		widths = measure();
 	}
 	const total = widths.reduce((a, b) => a + b, 0) + gap * (shown.length - 1);
-	// Too long to share a line at a readable size: time over date, both centred
-	if (total > maxWidth) {
+	// Too long to share a line at a readable size, or broken by a return: time over date, both centred
+	if (total > maxWidth || parts.some((p) => p.text.includes('\n'))) {
 		return stack(
 			s,
 			[
@@ -1363,7 +1385,7 @@ function pair(s: Scene, cx: number, baseline: number, maxWidth: number) {
 	ctx.save();
 	ctx.fillStyle = palette.text;
 	shown.forEach((p, i) => {
-		if (p.key !== s.hide) ctx.fillText(p.text, x, baseline);
+		if (p.key !== s.editing) ctx.fillText(p.text, x, baseline);
 		text[p.key] = {
 			x, y: baseline - size * 0.72, w: Math.max(widths[i], 120), h: size * 0.72, baselines: [baseline], size, weight: 800,
 			family: FONT, color: palette.text, upper: true, lineHeight: size * 1.25, align: 'left', rotate: 0,
