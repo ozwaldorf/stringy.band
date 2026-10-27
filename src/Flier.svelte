@@ -220,7 +220,8 @@
 	}
 
 	function openCallout(key: Key) {
-		active = isText(key) || active !== key ? key : null;
+		if (isText(key)) openEditor(key);
+		else active = active !== key ? key : null;
 	}
 
 	$effect(() => {
@@ -285,17 +286,39 @@
 		graded = { from: photo, canvas };
 	});
 
+	// A failure drawing shows on the page, which keeps working, rather than stopping the preview for good
+	let fault = $state('');
+	const describe = (err: unknown) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err));
+
 	$effect(() => {
 		const ctx = canvas?.getContext('2d');
 		if (!ctx || !art || !fontsReady || !ready) return;
-		layout = drawFlier(
-			ctx,
-			$state.snapshot(fields),
-			palette,
-			{ tile: tileBg },
-			{ ...art, design, shape, shapeScale, printScale, photo: shown, height: photoHeight, zoom, pan: [panX, panY] },
-			isText(active) ? active : undefined
-		);
+		try {
+			layout = drawFlier(
+				ctx,
+				$state.snapshot(fields),
+				palette,
+				{ tile: tileBg },
+				{ ...art, design, shape, shapeScale, printScale, photo: shown, height: photoHeight, zoom, pan: [panX, panY] },
+				isText(active) ? active : undefined
+			);
+		} catch (err) {
+			// Drop any drawing state the failed pass left behind
+			ctx.reset?.();
+			fault = `Drawing failed: ${describe(err)}`;
+			console.error(err);
+		}
+	});
+
+	$effect(() => {
+		const onError = (event: ErrorEvent) => (fault = describe(event.error ?? event.message));
+		const onRejection = (event: PromiseRejectionEvent) => (fault = describe(event.reason));
+		window.addEventListener('error', onError);
+		window.addEventListener('unhandledrejection', onRejection);
+		return () => {
+			window.removeEventListener('error', onError);
+			window.removeEventListener('unhandledrejection', onRejection);
+		};
 	});
 
 	// Where each leader line meets its element, in flier pixels
@@ -417,8 +440,10 @@
 			if (isText(hit)) {
 				event.preventDefault();
 				openedByTouch = event.pointerType === 'touch';
+				openEditor(hit);
+			} else {
+				active = hit;
 			}
-			active = hit;
 		} else if (inside(layout.qr, x, y, 0)) {
 			active = 'qr';
 		} else if (inside(layout.photo, x, y, 0) && photo) {
@@ -485,7 +510,9 @@
 
 	// An editor over the text, set in the same type so the flier reads the same while typing
 	function editorStyle(key: TextKey) {
-		const box = layout!.text[key]!;
+		// An editor being torn down after a tap moved on can be asked again for text no longer laid out
+		const box = layout?.text[key];
+		if (!box) return 'display: none';
 		// A joined up address still edits one line per line typed
 		const lines = key === 'address' ? Math.max(box.baselines.length, fields.address.split('\n').length) : 1;
 		const { lineHeight } = box;
@@ -515,6 +542,32 @@
 		].join('; ');
 	}
 
+	// Corner handles size the photo through whichever control the layout has. Classic grows its
+	// photo down from the top edge; the rest grow about their middle.
+	const SIZERS: Partial<Record<Design, { get: () => number; set: (v: number) => void; min: number; max: number; fromTop?: boolean }>> = {
+		classic: { get: () => photoHeight, set: (v) => (photoHeight = v), min: 420, max: 1100, fromTop: true },
+		shapes: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.6, max: SHAPE_MAX },
+		bigdate: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.6, max: 1 },
+		polaroid: { get: () => printScale, set: (v) => (printScale = v), min: 0.6, max: 1 }
+	};
+	const sizer = $derived(SIZERS[design]);
+	let resize: { reach: (p: [number, number]) => number; from: number; start: number } | undefined;
+
+	function startResize(event: PointerEvent) {
+		if (!layout || !sizer) return;
+		event.stopPropagation();
+		const box = layout.photo;
+		const [cx, cy] = [box.x + box.w / 2, box.y + box.h / 2];
+		const reach = sizer.fromTop ? ([, y]: [number, number]) => y - box.y : ([x, y]: [number, number]) => Math.hypot(x - cx, y - cy);
+		resize = { reach, from: Math.max(1, reach(flierPoint(event))), start: sizer.get() };
+		(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+	}
+
+	function moveResize(event: PointerEvent) {
+		if (!resize || !sizer) return;
+		sizer.set(clamp(resize.start * (resize.reach(flierPoint(event)) / resize.from), sizer.min, sizer.max));
+	}
+
 	function ring(box: Box) {
 		return `left: ${box.x * k}px; top: ${box.y * k}px; width: ${box.w * k}px; height: ${box.h * k}px`;
 	}
@@ -523,30 +576,38 @@
 	// closing an editor that opened elsewhere. Cancelling the tap's end stops them, and focusing
 	// there, inside the touch, is also what lets the keyboard come up.
 	let openedByTouch = false;
-	let editorEl: HTMLInputElement | HTMLTextAreaElement | undefined;
+	let editorEl = $state<HTMLTextAreaElement>();
+	const editing = $derived(isText(active) && layout?.text[active] ? active : null);
+
 	function touchEnd(event: TouchEvent) {
 		if (!openedByTouch) return;
 		openedByTouch = false;
 		event.preventDefault();
-		editorEl?.focus();
+		editorEl?.focus({ preventScroll: true });
 	}
 
-	function focusEditor(el: HTMLInputElement | HTMLTextAreaElement) {
-		editorEl = el;
-		el.focus();
-		el.setSelectionRange(el.value.length, el.value.length);
+	// Focused right away, inside the tap, which phones need before they show a keyboard;
+	// the caret goes to the end once the editor has the new text
+	function openEditor(key: TextKey) {
+		active = key;
+		editorEl?.focus({ preventScroll: true });
+		void tick().then(() => editorEl?.setSelectionRange(editorEl.value.length, editorEl.value.length));
 	}
 
 	// As many rows as its text wraps to; rows, not a height, since the style attribute is redrawn
 	function autoGrow(el: HTMLTextAreaElement) {
 		const fit = () => {
+			if (!editing || !layout?.text[editing]?.wrap) return void (el.rows = 1);
 			el.rows = 1;
 			el.rows = Math.max(1, Math.round(el.scrollHeight / parseFloat(getComputedStyle(el).lineHeight)));
 		};
 		const later = () => requestAnimationFrame(fit);
-		later();
 		el.addEventListener('input', later);
-		return () => el.removeEventListener('input', later);
+		el.addEventListener('focus', later);
+		return () => {
+			el.removeEventListener('input', later);
+			el.removeEventListener('focus', later);
+		};
 	}
 
 	function closeEditor(key: TextKey) {
@@ -727,58 +788,49 @@
 				onwheel={wheelZoom}
 			></canvas>
 			{#if layout && (active === 'photo' || active === 'qr')}
-				<div class="ring" style={ring(active === 'photo' ? layout.photo : layout.qr)}></div>
-			{/if}
-			{#if layout && isText(active) && layout.text[active]}
-				{@const key = active}
-				{#key key}
-					{#if key === 'address'}
-						<textarea
-							class="editor"
-							class:own={layout.text[key]?.own}
-							style={editorStyle(key)}
-							bind:value={fields.address}
-							placeholder={PLACEHOLDERS.address}
-							aria-label="Address"
-							spellcheck="false"
-							onblur={() => closeEditor(key)}
-							{@attach focusEditor}
-						></textarea>
-					{:else if layout.text[key]!.wrap}
-						<!-- Wraps like the drawn text; Enter still finishes rather than breaking the line -->
-						<textarea
-							class="editor"
-							class:own={layout.text[key]?.own}
-							style={editorStyle(key)}
-							bind:value={fields[key]}
-							placeholder={PLACEHOLDERS[key]}
-							aria-label={CALLOUTS.find((c) => c.key === key)?.label}
-							spellcheck="false"
-							onblur={() => closeEditor(key)}
-							onkeydown={(e) => {
-								if (e.key !== 'Enter') return;
-								e.preventDefault();
-								closeEditor(key);
-							}}
-							{@attach focusEditor}
-							{@attach autoGrow}
-						></textarea>
-					{:else}
-						<input
-							class="editor"
-							class:own={layout.text[key]?.own}
-							style={editorStyle(key)}
-							bind:value={fields[key]}
-							placeholder={PLACEHOLDERS[key]}
-							aria-label={CALLOUTS.find((c) => c.key === key)?.label}
-							spellcheck="false"
-							onblur={() => closeEditor(key)}
-							onkeydown={(e) => e.key === 'Enter' && closeEditor(key)}
-							{@attach focusEditor}
-						/>
+				<div class="ring" style={ring(active === 'photo' ? layout.photo : layout.qr)}>
+					{#if active === 'photo' && sizer}
+						{#each sizer.fromTop ? ['sw', 'se'] : ['nw', 'ne', 'sw', 'se'] as corner (corner)}
+							<span
+								class="handle {corner}"
+								role="slider"
+								aria-label="Resize photo"
+								aria-valuenow={sizer.get()}
+								tabindex="-1"
+								onpointerdown={startResize}
+								onpointermove={moveResize}
+								onpointerup={() => (resize = undefined)}
+								onpointercancel={() => (resize = undefined)}
+							></span>
+						{/each}
 					{/if}
-				{/key}
+				</div>
 			{/if}
+			<!-- One editor serves every text and stays on the page, moving to what was tapped: swapping
+			     editors mid-tap lost focus on phones, and the keyboard with it -->
+			<textarea
+				class="editor"
+				class:own={editing && layout?.text[editing]?.own}
+				class:idle={!editing}
+				style={editing ? editorStyle(editing) : ''}
+				value={editing ? fields[editing] : ''}
+				placeholder={editing ? PLACEHOLDERS[editing] : ''}
+				aria-label={editing ? CALLOUTS.find((c) => c.key === editing)?.label : 'Text editor'}
+				aria-hidden={!editing}
+				tabindex={editing ? 0 : -1}
+				wrap={editing === 'address' || layout?.text[editing ?? 'venue']?.wrap ? 'soft' : 'off'}
+				spellcheck="false"
+				bind:this={editorEl}
+				oninput={(e) => editing && (fields[editing] = e.currentTarget.value)}
+				onblur={() => editing && closeEditor(editing)}
+				onkeydown={(e) => {
+					// Only the address takes more than one line; Enter finishes the rest
+					if (e.key !== 'Enter' || editing === 'address') return;
+					e.preventDefault();
+					editorEl?.blur();
+				}}
+				{@attach autoGrow}
+			></textarea>
 		</div>
 
 		{#if !narrow}
@@ -834,6 +886,12 @@
 			</section>
 		{/each}
 	{/if}
+	{#if fault}
+		<p class="fault" role="alert">
+			<span>{fault}</span>
+			<button type="button" onclick={() => (fault = '')}>Dismiss</button>
+		</p>
+	{/if}
 </main>
 
 <style>
@@ -843,6 +901,37 @@
 		align-items: center;
 		gap: 1.5rem;
 		padding: 1.5rem 1rem 3rem;
+	}
+
+	.fault {
+		position: fixed;
+		left: 0.5rem;
+		right: 0.5rem;
+		bottom: 0.5rem;
+		z-index: 10;
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		margin: 0;
+		padding: 0.6rem 0.8rem;
+		border-radius: 6px;
+		background: var(--color-danger);
+		color: var(--color-surface);
+		font-size: 0.8rem;
+		overflow-wrap: anywhere;
+	}
+
+	.fault span {
+		flex: 1;
+	}
+
+	.fault button {
+		padding: 0.3rem 0.6rem;
+		border: 1px solid currentColor;
+		border-radius: 4px;
+		background: transparent;
+		color: inherit;
+		font: inherit;
 	}
 
 	.visually-hidden {
@@ -1161,6 +1250,16 @@
 		overflow: hidden;
 	}
 
+	/* Parked off the flier while no text is being edited, still focusable for the next tap */
+	.editor.idle {
+		left: -9999px;
+		top: 0;
+		width: 10px;
+		height: 10px;
+		opacity: 0;
+		pointer-events: none;
+	}
+
 	.editor.own {
 		color: var(--ink);
 	}
@@ -1186,6 +1285,51 @@
 		border-radius: 4px;
 		outline: 1px solid rgba(40, 40, 40, 0.35);
 		pointer-events: none;
+	}
+
+	.handle {
+		--size: 14px;
+		position: absolute;
+		width: var(--size);
+		height: var(--size);
+		margin: calc(var(--size) / -2);
+		border: 2px solid var(--color-accent);
+		border-radius: 3px;
+		background: var(--color-surface);
+		box-shadow: 0 1px 4px rgba(40, 40, 40, 0.35);
+		pointer-events: auto;
+		touch-action: none;
+	}
+
+	/* Bigger to land a finger on */
+	@media (pointer: coarse) {
+		.handle {
+			--size: 26px;
+		}
+	}
+
+	.handle.nw {
+		top: 0;
+		left: 0;
+		cursor: nwse-resize;
+	}
+
+	.handle.ne {
+		top: 0;
+		left: 100%;
+		cursor: nesw-resize;
+	}
+
+	.handle.sw {
+		top: 100%;
+		left: 0;
+		cursor: nesw-resize;
+	}
+
+	.handle.se {
+		top: 100%;
+		left: 100%;
+		cursor: nwse-resize;
 	}
 
 	.leaders {
