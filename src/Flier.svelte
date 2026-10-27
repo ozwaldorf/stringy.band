@@ -619,7 +619,7 @@
 	async function flierPng(): Promise<File | undefined> {
 		active = null;
 		await tick();
-		const blob = await new Promise<Blob | null>((resolve) => canvas?.toBlob(resolve, 'image/png') ?? resolve(null));
+		const blob = await new Promise<Blob | null>((resolve) => (canvas ? canvas.toBlob(resolve, 'image/png') : resolve(null)));
 		return blob ? new File([blob], flierFilename(fields), { type: 'image/png' }) : undefined;
 	}
 
