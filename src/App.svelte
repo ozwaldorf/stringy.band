@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import Home from './Home.svelte';
 	import Shop from './Shop.svelte';
+	import Flier from './Flier.svelte';
 	import NotFound from './NotFound.svelte';
 	import { glideTo } from './lib/scroll';
 
@@ -84,6 +85,8 @@
 
 {#if path === '/'}
 	<Home />
+{:else if path === '/flier'}
+	<Flier />
 {:else if path === '/shop' || path.startsWith('/shop/')}
 	<Shop handle={path.slice('/shop'.length).replace(/^\//, '')} />
 {:else}

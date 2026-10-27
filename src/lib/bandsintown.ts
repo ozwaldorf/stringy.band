@@ -36,7 +36,7 @@ type Event = {
 export const ARTIST_ID = '15672469';
 
 // The API reports venue-local times without an offset; every venue so far is Eastern
-const TIME_ZONE = 'America/New_York';
+export const TIME_ZONE = 'America/New_York';
 
 export async function fetchShows(appId: string): Promise<Show[]> {
 	const res = await fetch(
