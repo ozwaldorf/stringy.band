@@ -54,17 +54,29 @@ export function tintLogo(svg: string, tint: LogoTint): string {
 export const isLight = (palette: Palette) => contrast(palette.text, '#000000') < contrast(palette.text, '#ffffff');
 
 export const PALETTES: Palette[] = [
-	// Light fields with dark type, lightest first
+	// Light, in rows of four as the colour menu shows them: cream with four accents, warm tints, cool pastels
 	{ name: 'Cream', bg: '#fbf1c7', text: '#3c3836', accent: '#9d0006', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Cream blue', bg: '#fbf1c7', text: '#3c3836', accent: '#076678', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Cream aqua', bg: '#fbf1c7', text: '#3c3836', accent: '#427b58', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Cream plum', bg: '#fbf1c7', text: '#3c3836', accent: '#8f3f71', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Stone', bg: '#e2ddd3', text: '#3c3836', accent: '#af3a03', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
 	{ name: 'Butter', bg: '#f4dc93', text: '#3c3836', accent: '#9d0006', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Butter blue', bg: '#f4dc93', text: '#3c3836', accent: '#076678', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Blush', bg: '#f1d3d1', text: '#3c3836', accent: '#9d0006', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Seafoam', bg: '#d2e6dc', text: '#3c3836', accent: '#076678', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Sky', bg: '#cfe1e4', text: '#3c3836', accent: '#076678', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
+	{ name: 'Powder', bg: '#dde3ea', text: '#3c3836', accent: '#8f3f71', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
 	{ name: 'Lilac', bg: '#d8c4dc', text: '#3c3836', accent: '#8f3f71', shadow: 'rgba(60, 56, 54, 0.25)', logo: 'original' },
-	// Dark fields with light type, lightest first
+	// Dark: mid tones, deeper blues and a red, the darkest
 	{ name: 'Sage', bg: '#6f9c5e', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.3)', logo: 'light', qrBare: '#fbf1c7' },
-	{ name: 'Rose', bg: '#c26592', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.3)', logo: 'original', qrBare: '#fbf1c7' },
 	{ name: 'Teal', bg: '#3d8a85', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.35)', logo: 'bright', qrBare: '#fbf1c7' },
+	{ name: 'Rose', bg: '#c26592', text: '#fbf1c7', accent: '#fbf1c7', shadow: 'rgba(0, 0, 0, 0.3)', logo: 'original', qrBare: '#fbf1c7' },
 	{ name: 'Clay', bg: '#a5563a', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.35)', logo: 'original' },
 	{ name: 'Slate', bg: '#4c6470', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
+	{ name: 'Denim', bg: '#34506b', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
 	{ name: 'Blue', bg: '#076678', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
+	{ name: 'Brick', bg: '#7a3b2e', text: '#fbf1c7', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.4)', logo: 'bright' },
+	{ name: 'Forest', bg: '#28382e', text: '#ebdbb2', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.6)', logo: 'glow' },
 	{ name: 'Night', bg: '#3a2f26', text: '#fbf1c7', accent: '#fe8019', shadow: 'rgba(0, 0, 0, 0.5)', logo: 'glow' },
 	{ name: 'Ink', bg: '#25313d', text: '#ebdbb2', accent: '#fe8019', shadow: 'rgba(0, 0, 0, 0.6)', logo: 'glow' },
 	{ name: 'Dark', bg: '#282828', text: '#ebdbb2', accent: '#fabd2f', shadow: 'rgba(0, 0, 0, 0.6)', logo: 'glow' }
