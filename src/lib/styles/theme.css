@@ -71,9 +71,18 @@ html {
 	/* Each page's content fades in as it mounts, on load and on every route change,
 	   while the paper sheets behind it stay put: fade the outermost pieces that hold
 	   no paper. Backwards fill only holds the start frame, so nothing lingers after. */
-	#app > :not(:has(.paper)),
-	#app :has(.paper) > :not(.paper, :has(.paper)) {
+	/* Pages after a morphing route change (App.svelte) skip it */
+	:root:not(.morphed) #app > :not(:has(.paper)),
+	:root:not(.morphed) #app :has(.paper) > :not(.paper, :has(.paper)) {
 		animation: page-in 450ms ease-out backwards;
+	}
+
+	/* Pieces only on one page (the shop's extra cards) fade over the same time the shared ones move */
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation-duration: 500ms;
+		animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 	}
 }
 

@@ -16,7 +16,7 @@
 </script>
 
 <section id="merch" aria-label="Merch">
-	<SectionHeading label="Merch" level="h2" />
+	<SectionHeading label="Merch" level="h2" name="merch-title" />
 	{#if featured.length}
 		<div class="products">
 			{#each featured as product (product.id)}<ProductCard {product} />{/each}

@@ -258,7 +258,11 @@
 			// Shrink ahead of the move so the logo is header-sized before it meets the links
 			const shrink = 1 - (1 - p) ** 3;
 			const scale = 1 + (height / start.height - 1) * shrink;
-			el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+			// A page transition morphs the logo by its box (App.svelte), and a scaled box would
+			// balloon midway; meanwhile size it for real, which draws the same
+			const morphing = document.documentElement.classList.contains('swapping');
+			el.style.width = morphing ? `${start.width * scale}px` : '';
+			el.style.transform = morphing ? `translate(${x}px, ${y}px)` : `translate(${x}px, ${y}px) scale(${scale})`;
 		};
 
 		const onScroll = () => {
@@ -271,6 +275,12 @@
 		// Images and fonts finishing can move the logo and the menu
 		window.addEventListener('load', measure);
 		wide.addEventListener('change', measure);
+		// Redraw as a page transition starts and ends, to swap the logo's sizing
+		const redraw = () => {
+			drawn = -1;
+			update();
+		};
+		window.addEventListener('route-morph', redraw);
 		// Any layout shift above or around the menu moves the docking points
 		const resized = new ResizeObserver(() => measure());
 		resized.observe(document.body);
@@ -281,6 +291,7 @@
 			window.removeEventListener('resize', measure);
 			window.removeEventListener('load', measure);
 			wide.removeEventListener('change', measure);
+			window.removeEventListener('route-morph', redraw);
 		};
 	});
 </script>
@@ -483,6 +494,20 @@
 	.logo-link :global(.logo) {
 		width: 100%;
 		transform-origin: 0 0;
+	}
+
+	/* Slides to and from the shop header logo across a route change (App.svelte); one logo
+	   per screen size carries the name, since two on one page would cancel the transition */
+	@media (min-width: 769px) {
+		.logo-link :global(.logo) {
+			view-transition-name: site-logo;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.mobile-logo :global(.logo-art) {
+			view-transition-name: site-logo;
+		}
 	}
 
 	.logo-link :global(.logo.pinned) {

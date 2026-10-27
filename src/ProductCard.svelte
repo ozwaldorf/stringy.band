@@ -16,6 +16,8 @@
 	const previews = $derived(colors.flatMap(color => color.images?.[0] ? [{ name: color.name, image: color.images[0] }] : []));
 	const preview = $derived(previews.find(color => color.name === previewName) ?? previews[0]);
 	const previewImage = $derived(colors.length > 1 && preview ? preview.image : product.image);
+	// Matches this product's card on the other shop page, so it morphs across a route change
+	const transitionName = $derived(`card-${product.id.replace(/[^\w-]/g, '-')}`);
 
 	// Stable per-product scatter so each note sits a little differently
 	const scatter = $derived.by(() => {
@@ -66,7 +68,7 @@
 	});
 </script>
 
-<a class="product note torn" href={`/shop/${product.handle}`} style={scatter} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
+<a class="product note torn" href={`/shop/${product.handle}`} style={scatter} style:view-transition-name={transitionName} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
 	<span class="paper plain" aria-hidden="true"></span>
 	<div class="image">
 		{#key previewImage}

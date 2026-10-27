@@ -11,11 +11,35 @@
 		const next = window.location.pathname.replace(/\/+$/, '') || '/';
 		// Same-page history steps keep the browser's own scroll restoration
 		if (next === path) return;
-		path = next;
-		await tick();
-		const target = window.location.hash && document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
-		if (target) target.scrollIntoView({ behavior: 'instant' });
-		else window.scrollTo(0, 0);
+		const swap = async () => {
+			path = next;
+			await tick();
+			const target = window.location.hash && document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+			if (target) target.scrollIntoView({ behavior: 'instant' });
+			// Instant, or the page's smooth scrolling would carry on after the swap
+			else window.scrollTo({ top: 0, behavior: 'instant' });
+			// Pages that draw by scroll position (Home's docked logo) catch up before the capture,
+			// rather than on a scroll event that may come after it
+			window.dispatchEvent(new Event('route-morph'));
+		};
+		// Where the browser can, pieces both pages share (the merch title, each product
+		// card) morph from one page to the other while the rest crossfades
+		if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			const root = document.documentElement;
+			// 'swapping' lasts the transition; 'morphed' stays, so the page-in fade (theme.css)
+			// is left to the first load and never restarts when a transition ends
+			// 'route-morph' lets a page redraw anything that should morph differently (Home's logo)
+			root.classList.add('swapping', 'morphed');
+			window.dispatchEvent(new Event('route-morph'));
+			const transition = document.startViewTransition(swap);
+			void transition.finished.finally(() => {
+				root.classList.remove('swapping');
+				window.dispatchEvent(new Event('route-morph'));
+			});
+			await transition.updateCallbackDone;
+		} else {
+			await swap();
+		}
 		document.querySelector<HTMLElement>('main h1[tabindex], main[tabindex]')?.focus({ preventScroll: true });
 	}
 

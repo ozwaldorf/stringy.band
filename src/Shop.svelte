@@ -57,7 +57,7 @@
 		{#if handle === 'bag'}
 			<ShopBag />
 		{:else if !handle}
-			<SectionHeading label="Merch" page />
+			<SectionHeading label="Merch" page name="merch-title" />
 			{#if $catalog.products.length}
 				<p class="catalog-meta">{$groupedProducts.length} items, prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p>
 				<div class="product-grid">
@@ -71,7 +71,7 @@
 		{:else if product}
 			{#key `${product.id}:${handle}`}<ProductDetail {product} initialHandle={handle} />{/key}
 		{:else}
-			<SectionHeading label="Merch" page />
+			<SectionHeading label="Merch" page name="merch-title" />
 			{#if $catalog.loading}
 				<ShopNotice title="Loading this item" message="Checking the latest product details." />
 			{:else if $catalog.error}
@@ -106,7 +106,7 @@
 	.bag-count { min-width: 1.25rem; text-align: center; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 	.brand { display: block; flex-shrink: 0; }
 	/* 2.5rem tall at the logo's 10:7 */
-	.brand :global(.logo-art) { width: calc(2.5rem * 10 / 7); }
+	.brand :global(.logo-art) { width: calc(2.5rem * 10 / 7); view-transition-name: site-logo; }
 	main { flex: 1; display: flex; flex-direction: column; padding-top: 4rem; }
 	/* Subtitle under the heading */
 	/* Tucked up under the title, closer than the usual gap below a heading */
