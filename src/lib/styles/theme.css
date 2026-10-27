@@ -67,6 +67,20 @@ html {
 	html {
 		scroll-behavior: smooth;
 	}
+
+	/* Each page's content fades in as it mounts, on load and on every route change,
+	   while the paper sheets behind it stay put: fade the outermost pieces that hold
+	   no paper. Backwards fill only holds the start frame, so nothing lingers after. */
+	#app > :not(:has(.paper)),
+	#app :has(.paper) > :not(.paper, :has(.paper)) {
+		animation: page-in 450ms ease-out backwards;
+	}
+}
+
+@keyframes page-in {
+	from {
+		opacity: 0;
+	}
 }
 
 /* Clear the sticky header when jumping to a section */
