@@ -334,6 +334,8 @@ function shapePath(ctx: CanvasRenderingContext2D, shape: Shape, box: Box) {
 	}
 }
 
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
 const logoHeight = ({ art }: Scene, width: number) => (width * art.logo.naturalHeight) / art.logo.naturalWidth;
 
 // Returns the logo's visual bottom edge
@@ -880,15 +882,6 @@ function shapes(s: Scene): FlierLayout {
 	const w = 600 * art.shapeScale;
 	const photo = { x: (WIDTH - w) / 2, y: PAD, w, h: shape.height * art.shapeScale };
 	const clip = () => shapePath(ctx, shape.name, photo);
-	fillPhoto(s, photo, clip);
-	fadeDown(ctx, photo, 0.6, palette.bg, clip);
-	ctx.save();
-	ctx.strokeStyle = palette.accent;
-	ctx.lineWidth = 4;
-	ctx.globalAlpha = 0.85;
-	shapePath(ctx, shape.name, { x: photo.x - 16, y: photo.y - 16, w: photo.w + 32, h: photo.h + 32 });
-	ctx.stroke();
-	ctx.restore();
 
 	const cx = WIDTH / 2;
 	const qrSize = 210;
@@ -927,7 +920,20 @@ function shapes(s: Scene): FlierLayout {
 	const limit = showTagline ? baseline - 44 - (gap - 40) : where.top - gap;
 	// Centred between the shape's foot and the text; a logo taller than the gap overlaps the shape, never the text
 	const logoH = logoHeight(s, logoWidth) * LOGO_VISUAL;
-	drawLogo(s, logoWidth, cx, Math.min(limit - logoH, (photo.y + photo.h + limit - logoH) / 2));
+	const logoY = Math.min(limit - logoH, (photo.y + photo.h + limit - logoH) / 2);
+
+	// The photo fades from a little above where the logo starts covering it, so a deep overlap
+	// gets a long fade and a shallow one only a soft foot
+	fillPhoto(s, photo, clip);
+	fadeDown(ctx, photo, clamp((logoY - 60 - photo.y) / photo.h, 0.15, 0.85), palette.bg, clip);
+	ctx.save();
+	ctx.strokeStyle = palette.accent;
+	ctx.lineWidth = 4;
+	ctx.globalAlpha = 0.85;
+	shapePath(ctx, shape.name, { x: photo.x - 16, y: photo.y - 16, w: photo.w + 32, h: photo.h + 32 });
+	ctx.stroke();
+	ctx.restore();
+	drawLogo(s, logoWidth, cx, logoY);
 	const tagline = drawTagline(s, tx, baseline, palette.accent, { maxWidth, center: true });
 	const qr = drawQr(s, WIDTH - PAD - qrSize / 2, HEIGHT - PAD - qrSize / 2, qrSize, palette.bg);
 	return { photo, qr, field: [WIDTH - 28, 420], text: { ...where.text, ...when.text, ...entry.text, tagline } };
