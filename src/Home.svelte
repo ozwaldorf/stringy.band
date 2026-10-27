@@ -14,6 +14,7 @@
 	import videoData from './lib/videos.json';
 	import ShopPreview from './ShopPreview.svelte';
 	import BandPhotos from './BandPhotos.svelte';
+	import Logo from './Logo.svelte';
 	import SectionHeading from './SectionHeading.svelte';
 	import Bean from './Bean.svelte';
 	import Footer from './Footer.svelte';
@@ -165,7 +166,7 @@
 		return () => window.removeEventListener('keydown', onKey);
 	});
 
-	let logo = $state<HTMLImageElement>();
+	let logo = $state<HTMLElement>();
 	let slot = $state<HTMLElement>();
 	let menu = $state<HTMLElement>();
 	let sheet = $state<HTMLElement>();
@@ -269,7 +270,6 @@
 		window.addEventListener('resize', measure);
 		// Images and fonts finishing can move the logo and the menu
 		window.addEventListener('load', measure);
-		el.addEventListener('load', measure);
 		wide.addEventListener('change', measure);
 		// Any layout shift above or around the menu moves the docking points
 		const resized = new ResizeObserver(() => measure());
@@ -280,7 +280,6 @@
 			window.removeEventListener('scroll', onScroll);
 			window.removeEventListener('resize', measure);
 			window.removeEventListener('load', measure);
-			el.removeEventListener('load', measure);
 			wide.removeEventListener('change', measure);
 		};
 	});
@@ -292,13 +291,13 @@
 	<div class="content">
 	<span class="paper landing-sheet" aria-hidden="true" style:--open-extra={mobileOpen ? `calc(${dropHeight}px - 3.5rem)` : '0px'} bind:this={sheet}></span>
 	<a class="logo-link" href="#top" aria-label="Stringy and the Beans, back to top">
-		<img class="logo" src="/logo.svg" alt="Stringy and the Beans" bind:this={logo} />
+		<Logo class="logo" bind:element={logo} />
 	</a>
 
 	<div class="menu-sentinel" bind:this={sentinel}></div>
 	<header class="mobile-bar" class:visible={menuGone} inert={!menuGone}>
 		<a class="mobile-logo" href="#top" aria-label="Stringy and the Beans, back to top">
-			<img src="/logo.svg" alt="" />
+			<Logo />
 		</a>
 		<button
 			class="menu-toggle"
@@ -481,13 +480,12 @@
 		margin-top: max(2rem, calc(var(--landing-space) - 1rem));
 	}
 
-	.logo {
+	.logo-link :global(.logo) {
 		width: 100%;
-		height: auto;
 		transform-origin: 0 0;
 	}
 
-	.logo:global(.pinned) {
+	.logo-link :global(.logo.pinned) {
 		position: fixed;
 		z-index: 11;
 		width: var(--logo-width);
@@ -648,9 +646,9 @@
 			display: flex;
 		}
 
-		.mobile-logo img {
-			height: 2.5rem;
-			width: auto;
+		/* 2.5rem tall at the logo's 10:7 */
+		.mobile-logo :global(.logo-art) {
+			width: calc(2.5rem * 10 / 7);
 		}
 
 		.menu-toggle {

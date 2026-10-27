@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import IconBag from '~icons/carbon/shopping-bag';
+	import Logo from './Logo.svelte';
 	import ShopHeading from './ShopHeading.svelte';
 	import ProductCard from './ProductCard.svelte';
 	import ProductDetail from './ProductDetail.svelte';
@@ -28,7 +29,7 @@
 <div class="shop-page">
 	<header>
 		<span class="paper" aria-hidden="true"></span>
-		<a class="brand" href="/" aria-label="Stringy and the Beans home"><img src="/logo.svg" alt="" width="1000" height="700" /></a>
+		<a class="brand" href="/" aria-label="Stringy and the Beans home"><Logo /></a>
 		<nav class="crumbs" aria-label="Breadcrumb">
 			<ol>
 				<li><a href="/#merch">Home</a></li>
@@ -104,7 +105,8 @@
 	.bag-link { white-space: nowrap; }
 	.bag-count { min-width: 1.25rem; text-align: center; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 	.brand { display: block; flex-shrink: 0; }
-	.brand img { display: block; width: auto; height: 2.5rem; }
+	/* 2.5rem tall at the logo's 10:7 */
+	.brand :global(.logo-art) { width: calc(2.5rem * 10 / 7); }
 	main { flex: 1; display: flex; flex-direction: column; padding-top: 4rem; }
 	/* Subtitle under the heading */
 	.catalog-meta { margin: 0.5rem 0 0; color: var(--color-text-muted); font-size: 0.8rem; text-align: center; }
