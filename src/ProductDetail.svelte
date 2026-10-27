@@ -15,7 +15,13 @@
 	let added = $state(false);
 	let selectedPhoto = $state('');
 	const options = $derived(productOptions(product));
-	const initialColor = $derived(productSource(product, undefined, undefined, initialHandle).colors?.[0]?.name);
+	// A swatch clicked on the product's card opens on that color (?color=), when it is one of its options
+	const requestedColor = new URLSearchParams(window.location.search).get('color');
+	const initialColor = $derived(
+		requestedColor && options?.colors.some((option) => option.name === requestedColor)
+			? requestedColor
+			: productSource(product, undefined, undefined, initialHandle).colors?.[0]?.name
+	);
 	const color = $derived(colorName ? options?.colors.find(color => color.name === colorName) : options?.colors.find(color => color.name === initialColor) ?? options?.colors[0]);
 	const size = $derived(sizeName || (options?.sizes.length === 1 ? options.sizes[0] : ''));
 	const selected = $derived(options ? optionVariant(options, color?.name ?? '', size) : product.variants.length === 1
@@ -59,6 +65,10 @@
 		colorName = name;
 		selectedPhoto = '';
 		resetFeedback();
+		// Keep the address on the chosen color, so a reload or a shared link opens on it
+		const url = new URL(window.location.href);
+		url.searchParams.set('color', name);
+		history.replaceState(history.state, '', url);
 	}
 
 	$effect(() => {

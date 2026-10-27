@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { flushSync } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { fade } from 'svelte/transition';
 	import { productPrice, type Product } from './lib/fourthwall';
@@ -19,6 +20,14 @@
 	const previewImage = $derived(colors.length > 1 && preview ? preview.image : product.image);
 	// Matches this product's card on the other shop page, so it morphs across a route change
 	const transitionName = $derived(productTransitionName(product.id));
+
+	// A click on one of the color swatches opens the item page on that color: the link takes
+	// it on before the click goes on to navigate
+	let chosenColor = $state('');
+	function pickColor(event: MouseEvent) {
+		const swatch = (event.target as Element).closest<HTMLElement>('[data-color]');
+		if (swatch) flushSync(() => (chosenColor = swatch.dataset.color ?? ''));
+	}
 
 	// Stable per-product scatter so each note sits a little differently
 	const scatter = $derived.by(() => {
@@ -69,7 +78,7 @@
 	});
 </script>
 
-<a class="product note torn" href={`/shop/${product.handle}`} style={scatter} style:view-transition-name={transitionName} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
+<a class="product note torn" href={chosenColor ? `/shop/${product.handle}?color=${encodeURIComponent(chosenColor)}` : `/shop/${product.handle}`} style={scatter} onclick={pickColor} style:view-transition-name={transitionName} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
 	<span class="paper plain" aria-hidden="true"></span>
 	<div class="image">
 		{#key previewImage}
@@ -79,7 +88,7 @@
 	{#if colors.length > 1}
 		<div class="colors" role="img" aria-label={`Colors: ${colors.map(color => color.name).join(', ')}`}>
 			{#each colors as color (color.name)}
-				<span class:current={preview?.name === color.name} title={color.name}><ColorSwatch swatches={color.swatches} compact /></span>
+				<span class:current={preview?.name === color.name} title={color.name} data-color={color.name}><ColorSwatch swatches={color.swatches} compact /></span>
 			{/each}
 		</div>
 	{/if}
@@ -162,7 +171,9 @@
 		background: var(--gb-bg0-h);
 	}
 
-	.colors > span { display: block; border-radius: 50%; }
+	.colors > span { position: relative; display: block; border-radius: 50%; cursor: pointer; }
+	/* A slightly larger target than the dot itself, so it is easy to tap */
+	.colors > span::after { content: ''; position: absolute; inset: -0.2rem; border-radius: 50%; }
 	.colors > span.current { outline: 1px solid var(--color-accent); outline-offset: 2px; }
 
 	.product-meta :global(svg) {
