@@ -27,7 +27,7 @@
 	];
 
 	// Each print holds its photo this long; one clock steps the prints in turn
-	const INTERVAL = 6000;
+	const INTERVAL = 12000;
 
 	let indexes = $state(prints.map(() => 0));
 	let tick = 0;
