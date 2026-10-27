@@ -46,6 +46,11 @@ test('maps venue and address fields', () => {
 	assert.equal(toShow(event({ title: '' })).summary, 'Opening for Garrett Boys');
 });
 
+test('restores leading zeros on US ZIP codes', () => {
+	const venue = { name: 'Hunter Park', street_address: '410 Hunter Park Rd', city: 'Manchester Center', region: 'VT', postal_code: '5255', country: 'United States' };
+	assert.equal(toShow(event({ venue })).fullAddress, '410 Hunter Park Rd, Manchester Center, VT 05255');
+});
+
 test('takes tickets from offers and details and fliers from the description', () => {
 	const description = 'Details: https://venue.example/show Flier: https://www.instagram.com/p/abc/.';
 	const show = toShow(event({ description, offers: [{ type: 'Tickets', url: 'https://www.bandsintown.com/t/1?app_id=secret' }] }));

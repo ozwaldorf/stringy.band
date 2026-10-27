@@ -47,7 +47,12 @@ export async function fetchShows(appId: string): Promise<Show[]> {
 }
 
 export function toShow(event: Event): Show {
-	const { name, street_address: street, city, region, postal_code: postal, country } = event.venue;
+	const { name, street_address: street, city, region, country } = event.venue;
+	// The API drops leading zeros from US ZIP codes (05255 -> 5255)
+	const postal =
+		country === 'United States' && /^\d{3,4}$/.test(event.venue.postal_code ?? '')
+			? event.venue.postal_code!.padStart(5, '0')
+			: event.venue.postal_code;
 	const cityState = [city, region].filter(Boolean).join(', ') || undefined;
 	const simpleAddress = [street, cityState].filter(Boolean).join(', ') || undefined;
 	const fullAddress = simpleAddress && postal ? `${simpleAddress} ${postal}` : simpleAddress;
