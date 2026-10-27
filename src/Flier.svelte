@@ -107,7 +107,7 @@
 	let shape = $state<Shape>('arch');
 	// Shapes start at their largest
 	let shapeScale = $state(1);
-	let printScale = $state(0.75);
+	let printScale = $state(0.9);
 	let photoHeight = $state(PHOTO_HEIGHT);
 	let zoom = $state(1);
 	let panX = $state(0.5);
