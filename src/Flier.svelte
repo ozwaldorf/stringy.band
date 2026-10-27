@@ -107,7 +107,7 @@
 	let shape = $state<Shape>('arch');
 	// Shapes start at their largest
 	let shapeScale = $state(1);
-	let printScale = $state(1);
+	let printScale = $state(0.75);
 	let photoHeight = $state(PHOTO_HEIGHT);
 	let zoom = $state(1);
 	let panX = $state(0.5);
@@ -886,7 +886,7 @@
 	</div>
 
 
-	<div class="toolbar">
+	<div class="toolbar" class:narrow>
 		<select autocomplete="off" class="show" bind:value={showId} onchange={pickShow} aria-label="Show">
 			{#each groups as group (group.label)}
 				<optgroup label={group.label}>
@@ -904,18 +904,20 @@
 				</label>
 			{/each}
 		</div>
-		<button class="icon-button" type="button" onclick={randomize} aria-label="Randomize" title="Randomize">
-			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-				{#each [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]] as [cx, cy] (`${cx},${cy}`)}
-					<circle {cx} {cy} r="1.6" fill="currentColor" />
-				{/each}
-			</svg>
-		</button>
-		{#if canShare}
-			<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
-		{/if}
-		<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
+		<div class="actions">
+			<button class="icon-button" type="button" onclick={randomize} aria-label="Randomize" title="Randomize">
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.8" />
+					{#each [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]] as [cx, cy] (`${cx},${cy}`)}
+						<circle {cx} {cy} r="1.6" fill="currentColor" />
+					{/each}
+				</svg>
+			</button>
+			{#if canShare}
+				<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
+			{/if}
+			<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
+		</div>
 	</div>
 
 	<!-- Phones skip the callouts: text is tapped on the flier, the rest is laid out here -->
@@ -999,6 +1001,17 @@
 		flex: 1 1 14rem;
 		width: auto;
 		min-width: 0;
+	}
+
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	/* Phones give the actions a row of their own */
+	.toolbar.narrow .actions {
+		flex-basis: 100%;
+		justify-content: center;
 	}
 
 	.layouts {
