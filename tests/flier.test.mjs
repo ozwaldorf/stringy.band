@@ -59,7 +59,7 @@ test('tags the QR link for analytics', () => {
 	const fields = { link: 'https://stringy.band/#show-1', venue: "Harvey's Bar", date: 'Friday, August 21st' };
 	assert.equal(
 		qrLink(fields),
-		'https://stringy.band/?utm_source=flier&utm_medium=qr&utm_campaign=friday-august-21st-harvey-s-bar#show-1'
+		'https://stringy.band/?utm_source=flier&utm_medium=qr&utm_campaign=aug21-harvey-s-bar#show-1'
 	);
 	assert.equal(qrLink({ ...fields, link: 'not a url' }), 'not a url');
 	assert.equal(qrLink({ ...fields, link: 'mailto:band@stringy.band' }), 'mailto:band@stringy.band');

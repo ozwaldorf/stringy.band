@@ -621,8 +621,8 @@ function drawQr(s: Scene, cx: number, cy: number, size: number, behind: string, 
 	const box = { x: cx - size / 2, y: cy - size / 2, w: size, h: size };
 	if (!s.link) return box;
 	const { ctx, palette, art } = s;
-	// High error correction leaves room for the bean over the middle
-	const qr = qrcode(0, 'H');
+	// Quartile error correction: room for the bean over the middle, with coarser modules than high
+	const qr = qrcode(0, 'Q');
 	qr.addData(s.link);
 	qr.make();
 	const n = qr.getModuleCount();

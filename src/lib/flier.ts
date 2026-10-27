@@ -194,10 +194,26 @@ const slug = (text: string) =>
 		.replace(/^-+|-+$/g, '');
 
 // The UTM tags a flier's QR code carries
+// Kept short, since every character packs the QR code tighter: "nov11-opening-for"
+export function qrCampaign(fields: Pick<FlierFields, 'venue' | 'date'>): string {
+	const day = fields.date.match(/([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2})/);
+	const when = day ? `${day[1].toLowerCase()}${day[2]}` : slug(fields.date);
+	// As many whole words of the venue as fit in 18 characters, or the first word cut short
+	const words = slug(fields.venue).split('-').filter(Boolean);
+	let where = '';
+	for (const word of words) {
+		const next = where ? `${where}-${word}` : word;
+		if (next.length > 18) break;
+		where = next;
+	}
+	if (!where && words.length) where = words[0].slice(0, 18);
+	return [when, where].filter(Boolean).join('-') || 'flier';
+}
+
 export const qrTags = (fields: Pick<FlierFields, 'venue' | 'date'>) => ({
 	utm_source: 'flier',
 	utm_medium: 'qr',
-	utm_campaign: slug(`${fields.date} ${fields.venue}`) || 'flier'
+	utm_campaign: qrCampaign(fields)
 });
 
 // The QR code's link, tagged so scans show up as this flier in analytics; left alone if not a web link
