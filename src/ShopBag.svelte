@@ -4,7 +4,7 @@
 	import { catalog, refreshCatalog } from './lib/catalog';
 	import { checkoutUrl, formatPrice } from './lib/fourthwall';
 	import { variantImage } from './lib/product-options';
-	import ShopHeading from './ShopHeading.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 	import ShopNotice from './ShopNotice.svelte';
 	import Bean from './Bean.svelte';
 
@@ -47,7 +47,7 @@
 	}
 </script>
 
-<ShopHeading label="Your bag" level="h1" />
+<SectionHeading label="Your bag" page />
 
 {#if notice && notice.kind !== 'currency'}
 	<ShopNotice title={notice.title} message={notice.message} tone={notice.kind === 'error' ? 'error' : 'warning'}

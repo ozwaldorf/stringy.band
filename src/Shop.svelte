@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import IconBag from '~icons/carbon/shopping-bag';
 	import Logo from './Logo.svelte';
-	import ShopHeading from './ShopHeading.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 	import ProductCard from './ProductCard.svelte';
 	import ProductDetail from './ProductDetail.svelte';
 	import ShopBag from './ShopBag.svelte';
@@ -57,7 +57,7 @@
 		{#if handle === 'bag'}
 			<ShopBag />
 		{:else if !handle}
-			<ShopHeading label="Merch" level="h1" />
+			<SectionHeading label="Merch" page />
 			{#if $catalog.products.length}
 				<p class="catalog-meta">{$groupedProducts.length} items, prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p>
 				<div class="product-grid">
@@ -71,7 +71,7 @@
 		{:else if product}
 			{#key `${product.id}:${handle}`}<ProductDetail {product} initialHandle={handle} />{/key}
 		{:else}
-			<ShopHeading label="Merch" level="h1" />
+			<SectionHeading label="Merch" page />
 			{#if $catalog.loading}
 				<ShopNotice title="Loading this item" message="Checking the latest product details." />
 			{:else if $catalog.error}
