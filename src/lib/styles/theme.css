@@ -77,6 +77,7 @@ section[id] {
 }
 
 :root {
+	--section-heading: 1.75rem;
 	--paper: var(--gb-bg1);
 	--tear: 0.875rem;
 	--grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.22 0 0 0 0 0.2 0 0 0 0.2 0'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -131,6 +132,43 @@ html {
 	top: calc(-1 * var(--tear));
 	height: calc(100% + var(--tear));
 	transform: scaleY(-1);
+}
+
+/* Plain cream note held on with a strip of tape */
+.note {
+	position: relative;
+	background-color: var(--gb-bg0-h);
+	border-radius: 2px;
+	box-shadow:
+		0 1px 2px rgba(60, 56, 54, 0.15),
+		0 6px 16px rgba(60, 56, 54, 0.12);
+}
+
+.note::before {
+	content: '';
+	position: absolute;
+	z-index: 1;
+	top: -0.7rem;
+	left: 50%;
+	width: var(--tape-width, 6.5rem);
+	height: 1.4rem;
+	background: rgba(215, 153, 33, 0.35);
+	box-shadow: 0 1px 2px rgba(60, 56, 54, 0.12);
+	transform: translateX(-50%) rotate(var(--tape-tilt, 2deg));
+	pointer-events: none;
+}
+
+/* Sheet colour only, without the fibre and grain textures */
+.paper.plain::before {
+	background-image: none;
+}
+
+/* Note whose bottom edge is torn: a plain paper sheet inside draws it */
+.note.torn {
+	isolation: isolate;
+	background: none;
+	box-shadow: none;
+	--paper: var(--gb-bg0-h);
 }
 
 :root {

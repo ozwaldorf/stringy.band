@@ -81,9 +81,9 @@
 
 <div class="product-detail">
 	<div class="gallery">
-		<div class="product-image"><img src={photos[photoIndex]} alt={`${product.title}${color ? `, ${color.name}` : ''}, photo ${photoIndex + 1} of ${photos.length}`} width="422" height="422" /></div>
+		<div class="product-image note torn"><span class="paper plain" aria-hidden="true"></span><img src={photos[photoIndex]} alt={`${product.title}${color ? `, ${color.name}` : ''}, photo ${photoIndex + 1} of ${photos.length}`} width="422" height="422" /></div>
 		{#if photos.length > 1}
-			<div class="thumbnails" role="group" aria-label="Product photos">
+			<div class="thumbnails" role="group" aria-label="Product photos" style={`--count: ${photos.length}`}>
 				{#each photos as photo, index}
 					<button class="thumbnail" type="button" aria-label={`Show ${product.title}, photo ${index + 1} of ${photos.length}`} aria-pressed={index === photoIndex} onclick={() => (selectedPhoto = photo)}>
 						<img src={photo} alt="" width="56" height="56" loading="lazy" />
@@ -92,15 +92,17 @@
 			</div>
 		{/if}
 	</div>
-	<div class="details">
-		<h1 tabindex="-1">{product.title}</h1>
+	<div class="details note">
+		<!-- Words wrap only at spaces, never at hyphens like "T-shirt" -->
+		<h1 tabindex="-1">{#each product.title.split(" ") as word, i}{i ? " " : ""}<span class="word">{word}</span>{/each}</h1>
 		<p class="price" aria-live="polite" aria-atomic="true">{selected ? formatPrice(selected.price, selected.currency) : productPrice(product)}</p>
 		{#if product.available}
 			<form onsubmit={add}>
 				{#if options}
-					<fieldset class:single-color={options.colors.length === 1}>
-						<legend>Color<span>{color?.name ?? 'Choose a color'}</span></legend>
-						{#if options.colors.length > 1}
+					<!-- A single color needs no picker -->
+					{#if options.colors.length > 1}
+						<fieldset>
+							<legend>Color<span>{color?.name ?? 'Choose a color'}</span></legend>
 							<div class="color-options">
 								{#each options.colors as option (option.name)}
 									<label class="color-option" title={option.name}>
@@ -109,10 +111,8 @@
 									</label>
 								{/each}
 							</div>
-						{:else if !color}
-							<button class="shop-button secondary" type="button" onclick={() => selectColor(options.colors[0].name)}>Select {options.colors[0].name}</button>
-						{/if}
-					</fieldset>
+						</fieldset>
+					{/if}
 					<fieldset>
 						<legend>Size</legend>
 						<div class="options">
@@ -153,25 +153,32 @@
 </div>
 
 <style>
-	.product-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 2.5rem; max-width: 52rem; margin: auto; }
+	/* Centered on both axes in the shop's flex column */
+	/* Gallery fits the photo and a row of seven thumbnails */
+	.product-detail { display: grid; grid-template-columns: minmax(0, 28.5rem) minmax(0, 1fr); align-items: center; gap: 3rem; width: 100%; max-width: 58rem; margin: auto; }
 	.gallery { min-width: 0; }
-	.product-image { background: var(--color-bg-subtle); border-radius: 2px; aspect-ratio: 1; }
+	/* Photo and details on taped notes, like the merch cards and bio */
+	.product-image { aspect-ratio: 1; padding: 1rem; box-sizing: border-box; transform: rotate(-0.8deg); --tape-tilt: 3deg; }
 	img { width: 100%; height: 100%; object-fit: contain; display: block; }
-	.thumbnails { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.6rem; }
-	.thumbnail { width: 3.5rem; height: 3.5rem; padding: 0.15rem; border: 2px solid transparent; border-radius: 2px; background: var(--color-bg-subtle); box-sizing: border-box; cursor: pointer; }
-	.thumbnail:hover { border-color: var(--color-border); }
-	.thumbnail[aria-pressed='true'] { border-color: var(--color-accent); }
+	/* Fewer thumbnails spread out a little more */
+	.thumbnails { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(0.6rem + max(0, 7 - var(--count, 7)) * 0.25rem); margin-top: 1.5rem; }
+	/* Small paper scraps */
+	.thumbnail { width: 3.5rem; height: 3.5rem; padding: 0.2rem; border: 2px solid transparent; border-radius: 1px; background: var(--gb-bg0-h); box-shadow: 0 1px 2px rgba(60, 56, 54, 0.18), 0 3px 6px rgba(60, 56, 54, 0.1); box-sizing: border-box; cursor: pointer; transition: transform 120ms ease; }
+	.thumbnail:nth-child(odd) { transform: rotate(-1.5deg); }
+	.thumbnail:nth-child(even) { transform: rotate(1.2deg); }
+	.thumbnail:hover { border-color: var(--color-border); transform: rotate(0); }
+	.thumbnail[aria-pressed='true'] { border-color: var(--color-accent); transform: rotate(0); }
 	.thumbnail:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-	.details { position: relative; padding: 0.2rem 0 0 1.5rem; box-sizing: border-box; }
-	.details::before { content: ''; position: absolute; left: 0; top: 0.2rem; width: 0.9rem; height: 3rem; background: var(--floral-vine) top center / 100% 100% no-repeat; pointer-events: none; }
-	h1 { margin: 0; font-size: clamp(1.25rem, 2.5vw, 1.55rem); text-transform: none; letter-spacing: -0.015em; line-height: 1.35; font-weight: 700; }
-	.price { margin: 0.65rem 0 1.25rem; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-	form { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
+	.details { padding: 2rem 1.75rem 1.5rem; box-sizing: border-box; transform: rotate(0.6deg); --tape-tilt: -2deg; }
+	h1 { margin: 0; font-size: clamp(1.35rem, 2.6vw, 1.7rem); letter-spacing: 0.04em; line-height: 1.25; }
+	.word { white-space: nowrap; }
+	.price { margin: 0.5rem 0 1.5rem; font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text-muted); }
+	form { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
 	fieldset { min-width: 0; width: 100%; margin: 0; padding: 0; border: 0; }
-	legend { width: 100%; margin-bottom: 0.6rem; padding: 0; font-size: 0.8rem; font-weight: 600; }
-	legend span { margin-left: 0.65rem; color: var(--color-text-muted); font-weight: 400; }
-	.single-color legend { margin-bottom: 0; }
-	.options { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+	/* Labels match the bio lineup */
+	legend { width: 100%; margin-bottom: 0.6rem; padding: 0; color: var(--color-text-subtle); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+	legend span { margin-left: 0.65rem; color: var(--color-text-muted); font-weight: 400; letter-spacing: 0; text-transform: none; }
+	.options { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 	.color-options { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 	.color-option { display: inline-flex; position: relative; cursor: pointer; }
 	.color-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
@@ -179,22 +186,22 @@
 	.color-option:hover > span { border-color: var(--color-border); }
 	.color-option input:checked + span { border-color: var(--color-accent); }
 	.color-option input:focus-visible + span { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-	.option { display: inline-flex; position: relative; cursor: pointer; font-size: 0.85rem; }
+	.option { display: inline-flex; position: relative; cursor: pointer; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em; }
 	.option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-	.option > span { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0.4rem 0.65rem; border: 1px solid var(--color-border); border-radius: 2px; box-sizing: border-box; color: var(--color-text); }
-	.option:hover > span { background: var(--color-bg-subtle); border-color: var(--color-text-muted); }
+	.option > span { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0.4rem 0.65rem; border: 1px solid var(--gb-bg2); border-radius: 2px; box-sizing: border-box; color: var(--color-text-subtle); background: var(--gb-bg0-h); }
+	.option:hover > span { background: var(--gb-bg0-s); border-color: var(--color-text-muted); }
 	.option input:checked + span { color: var(--color-surface); background: var(--color-accent); border-color: var(--color-accent); }
 	.option input:disabled { cursor: not-allowed; }
 	.option input:disabled + span { opacity: 0.45; text-decoration: line-through; }
 	.option input:focus-visible + span { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 	.variant-title { margin: 0; font-size: 0.85rem; color: var(--color-text-muted); }
-	form > button { min-width: 9rem; }
+	/* Same bold call to action as the home merch button */
+	form > button { min-width: 11rem; min-height: 3.25rem; padding-inline: 2rem; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 	form > button[aria-disabled='true'] { cursor: default; }
-	.checkout-note { margin: 0.45rem 0 0; font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.6; }
+	.checkout-note { margin: 0.6rem 0 0; font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.6; }
 	@media (max-width: 620px) {
-		.product-detail { grid-template-columns: 1fr; gap: 1.25rem; }
+		.product-detail { grid-template-columns: 1fr; gap: 2rem; }
 		.gallery { max-width: 24rem; width: 100%; margin: auto; }
-		.details { max-width: 24rem; width: 100%; margin: auto; padding-left: 1.35rem; }
-		.details::before { width: 0.8rem; height: 2.75rem; }
+		.details { max-width: 24rem; width: 100%; margin: 0.5rem auto 0; padding: 1.75rem 1.25rem 1.25rem; }
 	}
 </style>

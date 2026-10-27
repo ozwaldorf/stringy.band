@@ -24,10 +24,15 @@
 
 <section class="product-sections" aria-label="Product information">
 	{#each sections as section}
-		<details>
-			<summary>{section.title}</summary>
-			<div class="content">{@render content(section.content, section.title)}</div>
-		</details>
+		<!-- The main description shows inline; the rest stay collapsible -->
+		{#if section.title.toLowerCase() === 'more details'}
+			<div class="content description">{@render content(section.content, section.title)}</div>
+		{:else}
+			<details>
+				<summary>{section.title}</summary>
+				<div class="content">{@render content(section.content, section.title)}</div>
+			</details>
+		{/if}
 	{/each}
 </section>
 

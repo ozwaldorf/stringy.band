@@ -53,7 +53,7 @@
 		{:else if !handle}
 			<ShopHeading label="Merch" level="h1" />
 			{#if $catalog.products.length}
-				<div class="catalog-meta"><p>{$groupedProducts.length} items</p><p>Prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p></div>
+				<p class="catalog-meta">{$groupedProducts.length} items, prices in {$catalog.products.flatMap((item) => item.variants)[0]?.currency ?? 'USD'}</p>
 				<div class="product-grid">
 					{#each $groupedProducts as item (item.id)}<ProductCard product={item} />{/each}
 				</div>
@@ -92,10 +92,10 @@
 	.bag-count { min-width: 1.25rem; text-align: center; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 	.brand { display: block; flex-shrink: 0; }
 	.brand img { display: block; width: auto; height: 2.5rem; }
-	main { flex: 1; padding-top: 2.75rem; }
-	.catalog-meta { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-subtle); color: var(--color-text-muted); font-size: 0.75rem; }
-	.catalog-meta p { margin: 0; }
-	.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem 1.25rem; }
+	main { flex: 1; display: flex; flex-direction: column; padding-top: 4rem; }
+	/* Subtitle under the heading */
+	.catalog-meta { margin: 0.5rem 0 0; color: var(--color-text-muted); font-size: 0.8rem; text-align: center; }
+	.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3.25rem 2.25rem; margin: 2.75rem 0 4rem; }
 	@media (max-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 	@media (max-width: 600px) {
 		.shop-page { padding: 0.75rem 1.25rem; --footer-bleed: 0.75rem; }
@@ -103,7 +103,7 @@
 		nav { gap: 0.75rem; }
 		.back-link, .bag-link { font-size: 0.8rem; letter-spacing: 0.1em; gap: 0.25rem; }
 		.back-link :global(svg) { display: none; }
-		main { padding-top: 2.5rem; }
-		.product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.75rem 1rem; }
+		main { padding-top: 3.5rem; }
+		.product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem 1.5rem; }
 	}
 </style>

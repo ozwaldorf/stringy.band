@@ -17,6 +17,22 @@
 	const preview = $derived(previews.find(color => color.name === previewName) ?? previews[0]);
 	const previewImage = $derived(colors.length > 1 && preview ? preview.image : product.image);
 
+	// Stable per-product scatter so each note sits a little differently
+	const scatter = $derived.by(() => {
+		let seed = 0;
+		for (const char of product.handle) seed = (Math.imul(seed, 31) + char.charCodeAt(0)) >>> 0;
+		const next = (min: number, max: number) => {
+			seed = (Math.imul(seed ^ (seed >>> 15), 2246822507) + 0x9e3779b9) >>> 0;
+			return min + (seed / 2 ** 32) * (max - min);
+		};
+		return [
+			`--tilt: ${next(-1.5, 1.5).toFixed(2)}deg`,
+			`--shift-x: ${next(-4, 4).toFixed(1)}px`,
+			`--shift-y: ${next(-4, 4).toFixed(1)}px`,
+			`--tape-tilt: ${next(-5, 5).toFixed(1)}deg`
+		].join('; ');
+	});
+
 	$effect(() => {
 		if (!card) return;
 		const observer = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting));
@@ -48,19 +64,20 @@
 	});
 </script>
 
-<a class="product" href={`/shop/${product.handle}`} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
+<a class="product note torn" href={`/shop/${product.handle}`} style={scatter} bind:this={card} onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)} onfocusin={() => (focused = true)} onfocusout={() => (focused = false)}>
+	<span class="paper plain" aria-hidden="true"></span>
 	<div class="image">
 		{#key previewImage}
 			<img src={previewImage} alt="" width="422" height="422" loading="lazy" transition:fade={{ duration: prefersReducedMotion.current ? 0 : 320 }} />
 		{/key}
-		{#if colors.length > 1}
-			<div class="colors" role="img" aria-label={`Colors: ${colors.map(color => color.name).join(', ')}`}>
-				{#each colors as color (color.name)}
-					<span class:current={preview?.name === color.name} title={color.name}><ColorSwatch swatches={color.swatches} compact /></span>
-				{/each}
-			</div>
-		{/if}
 	</div>
+	{#if colors.length > 1}
+		<div class="colors" role="img" aria-label={`Colors: ${colors.map(color => color.name).join(', ')}`}>
+			{#each colors as color (color.name)}
+				<span class:current={preview?.name === color.name} title={color.name}><ColorSwatch swatches={color.swatches} compact /></span>
+			{/each}
+		</div>
+	{/if}
 	<h3>{product.title}</h3>
 	<div class="product-meta">
 		<p>{productPrice(product)}</p>
@@ -78,13 +95,18 @@
 		text-decoration: none;
 		text-align: left;
 		height: 100%;
+		/* Taped note with a torn bottom; smaller tape to suit the card */
+		box-sizing: border-box;
+		padding: 0.75rem 0.75rem 1rem;
+		transform: translate(var(--shift-x, 0), var(--shift-y, 0)) rotate(var(--tilt, 0));
+		transition: transform 150ms ease;
+		--tape-width: 4.5rem;
 	}
 
 	.image {
 		position: relative;
 		width: 100%;
 		aspect-ratio: 1;
-		background: var(--color-bg-subtle);
 		border-radius: 4px;
 		box-sizing: border-box;
 		padding: 0.5rem;
@@ -98,7 +120,6 @@
 		width: calc(100% - 1rem);
 		height: calc(100% - 1rem);
 		object-fit: contain;
-		transition: transform 150ms ease;
 	}
 
 	h3 {
@@ -122,8 +143,8 @@
 	.colors {
 		position: absolute;
 		z-index: 1;
-		right: 0.5rem;
-		bottom: 0.5rem;
+		left: 0.4rem;
+		top: 0.4rem;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -133,7 +154,7 @@
 		box-sizing: border-box;
 		border: 1px solid var(--color-border-subtle);
 		border-radius: 999px;
-		background: var(--color-bg);
+		background: var(--gb-bg0-h);
 	}
 
 	.colors > span { display: block; border-radius: 50%; }
@@ -142,7 +163,6 @@
 	.product-meta :global(svg) {
 		color: var(--color-link);
 		flex-shrink: 0;
-		transition: transform 150ms ease;
 	}
 
 	p {
@@ -163,17 +183,13 @@
 		text-underline-offset: 3px;
 	}
 
-	.product:hover img {
-		transform: scale(1.025);
-	}
-
-	.product:hover .product-meta :global(svg) {
-		transform: translateX(3px);
+	.product:hover {
+		z-index: 1;
+		transform: translate(var(--shift-x, 0), var(--shift-y, 0)) rotate(var(--tilt, 0)) scale(1.04);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		img, .product-meta :global(svg) { transition: none; }
-		.product:hover img { transform: none; }
-		.product:hover .product-meta :global(svg) { transform: none; }
+		.product { transition: none; }
+		.product:hover { transform: translate(var(--shift-x, 0), var(--shift-y, 0)) rotate(var(--tilt, 0)); }
 	}
 </style>

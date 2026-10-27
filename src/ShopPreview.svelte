@@ -45,7 +45,7 @@
 		gap: 0.6rem;
 		width: fit-content;
 		min-height: 3.25rem;
-		margin: 2rem auto 0;
+		margin: 2.75rem auto 0;
 		padding-inline: 2rem;
 		font-size: 1.05rem;
 		font-weight: 700;
