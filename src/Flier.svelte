@@ -85,7 +85,7 @@
 		rounded: 'M7 2h10a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z',
 		hexagon: 'M12 1l10 7v14l-10 7-10-7V8z',
 		circle: 'M12 2a10 10 0 1 0 0.01 0z',
-		square: 'M3 3h18v18H3z',
+		square: 'M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z',
 		flower: polarIcon((t) => 0.9 + 0.1 * Math.cos(10 * t), 120),
 		burst: polarIcon((t) => (Math.round(((t + Math.PI / 2) / (Math.PI * 2)) * 32) % 2 ? 0.86 : 1), 32)
 	};
@@ -1534,6 +1534,12 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.4rem;
+	}
+
+	/* Twelve a group, four across */
+	.panel .shape-group .swatches {
+		display: grid;
+		grid-template-columns: repeat(4, max-content);
 	}
 
 	.swatch {
