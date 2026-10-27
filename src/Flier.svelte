@@ -11,6 +11,7 @@
 	import {
 		applyLut,
 		DESIGNS,
+		LAYOUT_SHAPES,
 		SHAPES,
 		drawFlier,
 		FONTS,
@@ -205,7 +206,7 @@
 		const tone = next.img && photoTone(next.img);
 		const ranked = tone ? palettesFor(grade && lut ? lutColor(tone, lut) : tone).filter((p) => p.name !== paletteName) : others;
 		design = pick(DESIGNS.filter((d) => d.name !== design)).name;
-		shape = pick(SHAPES).name;
+		shape = pick(LAYOUT_SHAPES[design] ?? SHAPES.map((c) => c.name));
 		shapeScale = 1;
 		qrTile = pick(QR_TILES.filter((t) => t.bg)).name;
 		paletteName = pick(ranked.slice(0, 3)).name;
@@ -219,6 +220,11 @@
 		uploadUrl = URL.createObjectURL(file);
 		photoName = UPLOAD;
 	}
+
+	$effect(() => {
+		const allowed = LAYOUT_SHAPES[design];
+		if (allowed && !allowed.includes(untrack(() => shape))) shape = allowed[0];
+	});
 
 	function openCallout(key: Key) {
 		if (isText(key)) openEditor(key);
@@ -549,6 +555,7 @@
 		classic: { get: () => photoHeight, set: (v) => (photoHeight = v), min: 420, max: 1100, fromTop: true },
 		shapes: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
 		bigdate: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
+		bigsquare: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
 		polaroid: { get: () => printScale, set: (v) => (printScale = v), min: 0.6, max: 1 }
 	};
 	const sizer = $derived(SIZERS[design]);
@@ -677,8 +684,8 @@
 			<label class="shop-button secondary upload">Upload<input type="file" accept="image/*" onchange={pickUpload} /></label>
 		</div>
 		<label class="check"><input type="checkbox" autocomplete="off" bind:checked={grade} /> Gruvbox colour grade</label>
-		{#if design === 'shapes' || design === 'bigdate'}
-			{#each [{ label: 'Portrait', round: false }, { label: 'Square', round: true }] as group (group.label)}
+		{#if design === 'shapes' || LAYOUT_SHAPES[design]}
+			{#each [{ label: 'Portrait', round: false }, { label: 'Square', round: true }].filter((g) => SHAPES.some((c) => !!c.round === g.round && (LAYOUT_SHAPES[design]?.includes(c.name) ?? true))) as group (group.label)}
 				<div class="shape-group">
 					<span class="group-label">{group.label}</span>
 					<div class="shapes" role="radiogroup" aria-label={`${group.label} shapes`}>
@@ -760,6 +767,12 @@
 			<rect x="3" y="12" width="9" height="13" /><rect x="3" y="27" width="6" height="2" />
 			<path d="M15 34V12a9 9 0 0 1 18 0v22z" class="photo" />
 			<rect x="3" y="38" width="14" height="3" /><rect x="27" y="37" width="6" height="6" rx="1" />
+		{:else if name === 'bigsquare'}
+			<rect x="3" y="3" width="10" height="5" rx="2" class="logo" />
+			<rect x="22" y="4" width="11" height="10" /><rect x="27" y="16" width="6" height="2" />
+			<rect x="3" y="13" width="18" height="18" rx="1" class="photo" />
+			<rect x="24" y="22" width="9" height="9" rx="1" />
+			<rect x="3" y="36" width="18" height="3" /><rect x="3" y="41" width="12" height="2" />
 		{:else if name === 'ticket'}
 			<rect x="3" y="1" width="30" height="43" rx="2" class="print" />
 			<rect x="11" y="3" width="14" height="7" rx="2" class="logo" />

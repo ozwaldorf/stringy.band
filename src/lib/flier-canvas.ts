@@ -33,12 +33,13 @@ const SCRIPT = '"Homemade Apple", cursive';
 const PRINT = '#fffdf5';
 const PRINT_INK = '#3c3836';
 
-export type Design = 'classic' | 'polaroid' | 'bigdate' | 'ticket' | 'shapes';
+export type Design = 'classic' | 'polaroid' | 'bigdate' | 'bigsquare' | 'ticket' | 'shapes';
 
 export const DESIGNS: { name: Design; label: string }[] = [
 	{ name: 'classic', label: 'Classic' },
 	{ name: 'polaroid', label: 'Polaroid' },
 	{ name: 'bigdate', label: 'Big date' },
+	{ name: 'bigsquare', label: 'Big date square' },
 	{ name: 'ticket', label: 'Ticket' },
 	{ name: 'shapes', label: 'Shapes' }
 ];
@@ -686,7 +687,20 @@ function turn(cx: number, cy: number, angle: number, x: number, y: number): [num
 	return [cx + x * cos - y * sin, cy + x * sin + y * cos];
 }
 
-const LAYOUTS: Record<Design, (s: Scene) => FlierLayout> = { classic, polaroid, bigdate, ticket, shapes };
+const LAYOUTS: Record<Design, (s: Scene) => FlierLayout> = {
+	classic,
+	polaroid,
+	bigdate: (s) => bigdate(s, false),
+	bigsquare: (s) => bigdate(s, true),
+	ticket,
+	shapes
+};
+
+// The shapes a layout takes; a shape outside them falls back to the first
+export const LAYOUT_SHAPES: Partial<Record<Design, Shape[]>> = {
+	bigdate: SHAPES.filter((c) => !c.round).map((c) => c.name),
+	bigsquare: SHAPES.filter((c) => c.round).map((c) => c.name)
+};
 
 // The details column: venue, address, time, date and entry down the left
 function details(s: Scene, color = s.palette.text, accent = s.palette.accent) {
@@ -786,10 +800,11 @@ function polaroid(s: Scene): FlierLayout {
 	};
 }
 
-// The date set huge beside the photo cut to a shape, small logo above it
-function bigdate(s: Scene): FlierLayout {
+// The date set huge beside a portrait shape, or, with `square`, top right over a square one
+function bigdate(s: Scene, square: boolean): FlierLayout {
 	const { ctx, palette, fields, art } = s;
-	const shape = SHAPES.find((c) => c.name === art.shape) ?? SHAPES[0];
+	const allowed = SHAPES.filter((c) => !!c.round === square);
+	const shape = allowed.find((c) => c.name === art.shape) ?? allowed[0];
 	// Beside a round shape the QR code moves up under the date, so the details take the full width
 	const maxWidth = s.link && !shape.round ? WIDTH - PAD * 2 - 230 - 40 : WIDTH - PAD * 2;
 	const info = stack(
