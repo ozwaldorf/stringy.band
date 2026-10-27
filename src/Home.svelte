@@ -427,7 +427,18 @@
 		margin-top: 3rem;
 	}
 
+	/* The landing snaps whole: a scroll on it settles at the top or on the links.
+	   The links' snap area runs on to the end of the page, so everything below
+	   scrolls freely. */
+	/* Off while a link glides, or it would pull each step to a snap point */
+	:global(html:has(#follow):not(.gliding)) {
+		scroll-snap-type: y mandatory;
+	}
+
 	.logo-link {
+		scroll-snap-align: start;
+		/* Pulls its snap point above the page, which clamps to the top */
+		scroll-margin-top: 100vh;
 		display: flex;
 		width: var(--logo-width);
 		aspect-ratio: 10 / 7;
@@ -764,6 +775,8 @@
 	}
 
 	.socials-section {
+		scroll-snap-align: start;
+		scroll-margin-bottom: 100000px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;

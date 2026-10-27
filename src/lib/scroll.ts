@@ -10,6 +10,8 @@ let cancel: (() => void) | undefined;
 export function glideTo(id: string) {
 	cancel?.();
 	window.dispatchEvent(new CustomEvent('glidestart', { detail: id }));
+	// Scroll snapping is off while this is set
+	document.documentElement.classList.add('gliding');
 	const target = id ? document.getElementById(id) : null;
 	const margin = target ? parseFloat(getComputedStyle(target).scrollMarginTop) || 0 : 0;
 	const limit = document.documentElement.scrollHeight - window.innerHeight;
@@ -19,6 +21,7 @@ export function glideTo(id: string) {
 
 	if (prefersReducedMotion.current || Math.abs(distance) < 2) {
 		window.scrollTo({ top: to, behavior: 'instant' });
+		document.documentElement.classList.remove('gliding');
 		window.dispatchEvent(new Event('glideend'));
 		return;
 	}
@@ -31,6 +34,7 @@ export function glideTo(id: string) {
 		cancelAnimationFrame(frame);
 		for (const type of INTERRUPTS) window.removeEventListener(type, stop);
 		cancel = undefined;
+		document.documentElement.classList.remove('gliding');
 		window.dispatchEvent(new Event('glideend'));
 	};
 
