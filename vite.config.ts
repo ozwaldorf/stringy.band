@@ -41,29 +41,66 @@ function fetchShows(): Plugin {
 	};
 }
 
+// The deployed copy of the last good video list, used when YouTube's feed is down
+const VIDEOS_FALLBACK = 'https://stringy.band/videos.json';
+
 function fetchVideos(): Plugin {
-	async function run() {
-		try {
-			const res = await fetch(feedUrl(CHANNEL_ID));
-			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-			const videos = latestVideos(parseFeed(await res.text()));
-			mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
-			writeFileSync(
-				VIDEOS_OUT,
-				JSON.stringify({ fetchedAt: new Date().toISOString(), videos }, null, 2) + '\n'
-			);
-			console.log(`[fetch-videos] wrote ${videos.length} videos`);
-		} catch (err) {
-			console.warn(`[fetch-videos] failed: ${(err as Error).message}`);
-			mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
-			writeFileSync(VIDEOS_OUT, JSON.stringify({ fetchedAt: null, videos: [] }, null, 2) + '\n');
+	async function fetchFeed() {
+		let error: Error | undefined;
+		for (let attempt = 0; attempt < 3; attempt++) {
+			if (attempt) await new Promise((r) => setTimeout(r, 2000 * attempt));
+			try {
+				const res = await fetch(feedUrl(CHANNEL_ID));
+				if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+				return latestVideos(parseFeed(await res.text()));
+			} catch (err) {
+				error = err as Error;
+			}
 		}
+		throw error;
+	}
+
+	// The local file from an earlier run, else the deployed copy
+	async function lastGood(): Promise<{ fetchedAt: string | null; videos: unknown[] }> {
+		try {
+			const local = JSON.parse(readFileSync(VIDEOS_OUT, 'utf8'));
+			if (local.videos?.length) return local;
+		} catch {
+			// No earlier run
+		}
+		try {
+			const res = await fetch(VIDEOS_FALLBACK);
+			if (res.ok) {
+				const deployed = await res.json();
+				if (deployed.videos?.length) return deployed;
+			}
+		} catch {
+			// Not deployed yet
+		}
+		return { fetchedAt: null, videos: [] };
+	}
+
+	async function run() {
+		let data;
+		try {
+			data = { fetchedAt: new Date().toISOString(), videos: await fetchFeed() };
+			console.log(`[fetch-videos] wrote ${data.videos.length} videos`);
+		} catch (err) {
+			data = await lastGood();
+			console.warn(`[fetch-videos] failed: ${(err as Error).message}; kept ${data.videos.length} earlier videos`);
+		}
+		mkdirSync(dirname(VIDEOS_OUT), { recursive: true });
+		writeFileSync(VIDEOS_OUT, JSON.stringify(data, null, 2) + '\n');
 	}
 
 	return {
 		name: 'fetch-videos',
 		buildStart: run,
-		configureServer: run
+		configureServer: run,
+		// Publish the list so a later build can fall back to it
+		generateBundle() {
+			this.emitFile({ type: 'asset', fileName: 'videos.json', source: readFileSync(VIDEOS_OUT, 'utf8') });
+		}
 	};
 }
 

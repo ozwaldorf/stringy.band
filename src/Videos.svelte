@@ -28,6 +28,8 @@
 
 	$effect(() => {
 		const next = current;
+		// The feed can come back empty at build time
+		if (!next) return;
 		const incoming = active ^ 1;
 		if (slots[incoming]?.id === next.id || slots[active]?.id === next.id) return;
 		slots[incoming] = next;
@@ -35,11 +37,11 @@
 
 	function onLoaded(slot: number) {
 		// Reveal the slot only once it holds the current video and is hidden.
-		if (slot !== active && slots[slot]?.id === current.id) active = slot;
+		if (slot !== active && slots[slot]?.id === current?.id) active = slot;
 	}
 
 	// Dots track the visible video, not the pending one.
-	const showingIndex = $derived(videos.findIndex((v) => v.id === (slots[active] ?? current).id));
+	const showingIndex = $derived(videos.findIndex((v) => v.id === (slots[active] ?? current)?.id));
 
 	function stop() {
 		interacted = true;
