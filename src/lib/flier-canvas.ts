@@ -1,5 +1,5 @@
 import qrcode from 'qrcode-generator';
-import { contrast, ordinalSuffix, QR_TILES, qrColor, qrLink, shade, type FlierFields, type Palette, type QrStyle } from './flier';
+import { contrast, isLight, ordinalSuffix, QR_TILES, qrColor, qrLink, shade, type FlierFields, type Palette, type QrStyle } from './flier';
 
 // Instagram's native portrait size
 export const WIDTH = 1080;
@@ -336,14 +336,13 @@ function shapePath(ctx: CanvasRenderingContext2D, shape: Shape, box: Box) {
 		case 'oval':
 			ctx.beginPath();
 			return ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+		// Rounded and square share their corners
 		case 'rounded':
+		case 'square':
 			ctx.beginPath();
 			return ctx.roundRect(x, y, w, h, w * 0.16);
 		case 'hexagon':
 			return corners(ctx, [[cx, y], [x + w, y + h * 0.25], [x + w, y + h * 0.75], [cx, y + h], [x, y + h * 0.75], [x, y + h * 0.25]]);
-		case 'square':
-			ctx.beginPath();
-			return ctx.roundRect(x, y, w, h, w * 0.025);
 		case 'flower':
 			// Ten round petals
 			return polar(ctx, box, (t) => 0.9 + 0.1 * Math.cos(10 * t));
@@ -873,6 +872,26 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 	const scale = Math.min(1, art.shapeScale * SHAPE_GROW);
 	// The details decide the shape's room, the shape the QR code's size, and that the details'
 	// width; a measuring pass settles it, and a second if the venue then wraps onto another line
+	// Beside a round shape the QR code sits in the flier's corner and grows into the corner of the
+	// shape's box the curve leaves empty, keeping the gap from the curve itself; a square only leaves
+	// its rounded corner. Under the date and tagline, and the details keep some width.
+	const cornerQr = (d: number, y: number) => {
+		const [cx, cy, r] = [PAD + d / 2, y + d / 2, d / 2];
+		const clear = (q: number) => {
+			const [qx, qy] = [WIDTH - PAD - q, HEIGHT - PAD - q];
+			if (shape.name === 'square') {
+				// Clear of the box, or tucked into the curve of its rounded corner
+				const [right, foot, rc] = [PAD + d, y + d, d * 0.16];
+				if (qx >= right + QR_GAP || qy >= foot + QR_GAP) return true;
+				return qx > right - rc && qy > foot - rc && Math.hypot(qx - (right - rc), qy - (foot - rc)) - rc >= QR_GAP;
+			}
+			return Math.hypot(cx - clamp(cx, qx, WIDTH - PAD), cy - clamp(cy, qy, HEIGHT - PAD)) >= r + QR_GAP;
+		};
+		let q = Math.min(HEIGHT - PAD - DATE_TOP_BOTTOM - 110, WIDTH - PAD * 2 - 40 - 360);
+		while (q > QR_MIN && !clear(q)) q -= 2;
+		return q;
+	};
+
 	const settle = (width: number) => {
 		const details = detailsFor(width);
 		const detailsTop = stack(s, details, { x: PAD, bottom: HEIGHT - PAD, align: 'left', maxWidth: width, draw: false }).top;
@@ -884,7 +903,7 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 		// it, keeping clear of the date column and leaving the details some width
 		const portraitFoot = PAD + (slotBottom - PAD) * scale;
 		const qrSize = shape.round
-			? Math.min(WIDTH - PAD - (PAD + d + QR_GAP), HEIGHT - PAD - DATE_TOP_BOTTOM - 110)
+			? cornerQr(d, (ROUND_TOP + slotBottom - d) / 2)
 			: clamp(HEIGHT - PAD - portraitFoot - QR_GAP, 230, Math.min(WIDTH - PAD - 452, WIDTH - PAD * 2 - 40 - 380));
 		const textWidth = s.link ? WIDTH - PAD * 2 - qrSize - 40 : WIDTH - PAD * 2;
 		return { details, slotBottom, d, qrSize, textWidth };
@@ -969,10 +988,12 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 // An admission ticket: logo and venue at its head, the picture under them, the stub's fields below the tear line
 function ticket(s: Scene): FlierLayout {
 	const { ctx, palette, fields } = s;
-	// Paper and ink swap with the palette so the ticket always stands off the field
-	const paper = palette.text;
-	const ink = contrast(palette.bg, paper) >= 4.5 ? palette.bg : shade(palette.bg, 0.55);
-	const mark = contrast(palette.bg, paper) >= 3 ? palette.bg : shade(palette.bg, 0.35);
+	// On a dark field the ticket is cream, inked in the field's colour. On a light one it is white
+	// paper in the palette's own ink, its accent marking the venue, entry and stub.
+	const light = isLight(palette);
+	const paper = light ? PRINT : palette.text;
+	const ink = light ? palette.text : contrast(palette.bg, paper) >= 4.5 ? palette.bg : shade(palette.bg, 0.55);
+	const mark = light ? palette.accent : contrast(palette.bg, paper) >= 3 ? palette.bg : shade(palette.bg, 0.35);
 	const t = { x: 56, y: 40, w: WIDTH - 112, h: HEIGHT - 80 };
 	const tear = 980;
 
