@@ -30,13 +30,17 @@
 		width: 100%;
 		max-width: 48rem;
 		margin-top: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 	}
 
 	.products {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 1.5rem;
-		margin-top: 1.5rem;
+		/* Room for the tape that overhangs each card */
+		padding-top: 1rem;
 	}
 
 	/* Primary call to action, larger than the shop's own buttons */
@@ -45,7 +49,7 @@
 		gap: 0.6rem;
 		width: fit-content;
 		min-height: 3.25rem;
-		margin: 2.75rem auto 0;
+		margin: 2rem auto 0;
 		padding-inline: 2rem;
 		font-size: 1.05rem;
 		font-weight: 700;
