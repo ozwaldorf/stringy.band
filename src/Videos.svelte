@@ -127,7 +127,7 @@
 	}
 
 	h1 {
-		margin: 0;
+		margin: 0 0 var(--section-heading-gap);
 		font-size: var(--section-heading);
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
