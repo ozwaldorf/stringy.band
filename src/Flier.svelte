@@ -414,7 +414,10 @@
 		const hit = hits.find((key) => !layout!.text[key]!.empty) ?? hits[0];
 		if (hit) {
 			// Keeps focus on the editor that opens rather than the canvas
-			if (isText(hit)) event.preventDefault();
+			if (isText(hit)) {
+				event.preventDefault();
+				openedByTouch = event.pointerType === 'touch';
+			}
 			active = hit;
 		} else if (inside(layout.qr, x, y, 0)) {
 			active = 'qr';
@@ -507,7 +510,20 @@
 		return `left: ${box.x * k}px; top: ${box.y * k}px; width: ${box.w * k}px; height: ${box.h * k}px`;
 	}
 
+	// On phones a tap ends with stand-in mouse events that move focus to wherever the finger was,
+	// closing an editor that opened elsewhere. Cancelling the tap's end stops them, and focusing
+	// there, inside the touch, is also what lets the keyboard come up.
+	let openedByTouch = false;
+	let editorEl: HTMLInputElement | HTMLTextAreaElement | undefined;
+	function touchEnd(event: TouchEvent) {
+		if (!openedByTouch) return;
+		openedByTouch = false;
+		event.preventDefault();
+		editorEl?.focus();
+	}
+
 	function focusEditor(el: HTMLInputElement | HTMLTextAreaElement) {
+		editorEl = el;
 		el.focus();
 		el.setSelectionRange(el.value.length, el.value.length);
 	}
@@ -698,6 +714,7 @@
 				onpointermove={pointerMove}
 				onpointerup={pointerUp}
 				onpointercancel={pointerCancel}
+				ontouchend={touchEnd}
 				onwheel={wheelZoom}
 			></canvas>
 			{#if layout && (active === 'photo' || active === 'qr')}
