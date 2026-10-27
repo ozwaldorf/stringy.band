@@ -341,8 +341,7 @@
 	<nav class="menu" class:stuck class:gone={menuGone} aria-label="Sections" bind:this={menu}>
 		<span class="logo-slot" aria-hidden="true" bind:this={slot}></span>
 		{#each sections as [id, label] (id)}
-			<!-- Merch slides to and from the shop breadcrumb across a route change (App.svelte) -->
-			<a href={`#${id}`} aria-current={active === id ? 'location' : undefined} style:view-transition-name={id === 'merch' ? 'merch-link' : undefined}>{label}</a>
+			<a href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>
 		{/each}
 	</nav>
 
