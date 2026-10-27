@@ -489,20 +489,29 @@
 		// A joined up address still edits one line per line typed
 		const lines = key === 'address' ? Math.max(box.baselines.length, fields.address.split('\n').length) : 1;
 		const { lineHeight } = box;
-		const top = box.baselines[0] - box.size * 0.36 - lineHeight / 2;
-		const [left, width] = box.span;
+		const top = (box.baselines[0] - box.size * 0.36 - lineHeight / 2) * k;
+		const left = box.span[0] * k;
+		const width = box.span[1] * k;
+		const height = box.wrap ? 0 : lineHeight * lines * k;
+		// Phones zoom the page into text fields set under 16px, so the editor is built at least that
+		// big and scaled back down to the flier. It turns and shrinks about the point the flier
+		// turns the text, kept where it would sit unscaled.
+		const f = Math.max(1, 16 / (box.size * k));
+		const px = box.align === 'center' ? width / 2 : box.align === 'right' ? width : 0;
+		const py = height / 2;
 		return [
-			`left: ${left * k}px`,
-			`top: ${top * k}px`,
-			`width: ${width * k}px`,
-			...(box.wrap ? [] : [`height: ${box.lineHeight * lines * k}px`]),
-			`font: ${box.weight} ${box.size * k}px/${lineHeight * k}px ${box.family}`,
+			`left: ${left + px - px * f}px`,
+			`top: ${top + py - py * f}px`,
+			`width: ${width * f}px`,
+			...(box.wrap ? [] : [`height: ${height * f}px`]),
+			`font: ${box.weight} ${box.size * k * f}px/${lineHeight * k * f}px ${box.family}`,
+			`outline-width: ${f}px`,
+			`outline-offset: ${2 * f}px`,
 			`--ink: ${box.color}`,
 			`text-transform: ${box.upper ? 'uppercase' : 'none'}`,
 			`text-align: ${box.align}`,
-			`transform: rotate(${box.rotate}rad)`,
-			// Turned about the same point the flier turns it
-			`transform-origin: ${box.align === 'center' ? 'center' : 'right'} center`
+			`transform: rotate(${box.rotate}rad) scale(${1 / f})`,
+			`transform-origin: ${px * f}px ${py * f}px`
 		].join('; ');
 	}
 
