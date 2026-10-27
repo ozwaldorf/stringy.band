@@ -3,12 +3,13 @@
 	import Home from './Home.svelte';
 	import Shop from './Shop.svelte';
 	import NotFound from './NotFound.svelte';
+	import { glideTo } from './lib/scroll';
 
 	let path = $state(window.location.pathname.replace(/\/+$/, '') || '/');
 
 	async function updatePath() {
 		const next = window.location.pathname.replace(/\/+$/, '') || '/';
-		// In-page hash links fire popstate too; leave their scrolling to the browser
+		// Same-page history steps keep the browser's own scroll restoration
 		if (next === path) return;
 		path = next;
 		await tick();
@@ -36,7 +37,13 @@
 
 			const url = new URL(anchor.href, window.location.href);
 			if (url.origin !== window.location.origin) return;
-			if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+			if (url.pathname === window.location.pathname && url.search === window.location.search) {
+				if (!url.hash) return;
+				event.preventDefault();
+				if (url.hash !== window.location.hash) window.history.pushState({}, '', url);
+				glideTo(decodeURIComponent(url.hash.slice(1)));
+				return;
+			}
 
 			event.preventDefault();
 			window.history.pushState({}, '', url);

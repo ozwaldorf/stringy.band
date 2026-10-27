@@ -32,6 +32,61 @@
 		['contact', 'Contact']
 	];
 
+	// The section in view: one that fills the whole screen below the header wins,
+	// otherwise the one with the largest share of itself visible. A link glide
+	// shows its destination instead, and the URL hash follows along.
+	let active = $state('');
+
+	$effect(() => {
+		let frame = 0;
+		let gliding = false;
+		let current = '';
+		const update = (sync = true) => {
+			frame = 0;
+			if (gliding) return;
+			const top = 4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+			const room = window.innerHeight - top;
+			let best = '';
+			let bestScore = 0;
+			for (const [id] of sections) {
+				const rect = document.getElementById(id)?.getBoundingClientRect();
+				if (!rect || !rect.height) continue;
+				const seen = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, top);
+				if (seen <= 0) continue;
+				// Ties keep the current pick, so a glide's destination stays lit
+				const score = (seen >= room - 1 ? 1 : 0) + seen / rect.height + (id === current ? 0.001 : 0);
+				if (score > bestScore) [best, bestScore] = [id, score];
+			}
+			active = current = best;
+			const hash = best ? `#${best}` : '';
+			if (sync && window.location.hash !== hash) {
+				window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}${hash}`);
+			}
+		};
+		const schedule = () => { if (!frame) frame = requestAnimationFrame(() => update()); };
+		const onGlideStart = (event: Event) => {
+			gliding = true;
+			active = current = (event as CustomEvent<string>).detail;
+		};
+		const onGlideEnd = () => {
+			gliding = false;
+			update();
+		};
+		// Leave an incoming hash alone until the visitor scrolls
+		update(false);
+		window.addEventListener('scroll', schedule, { passive: true });
+		window.addEventListener('resize', schedule);
+		window.addEventListener('glidestart', onGlideStart);
+		window.addEventListener('glideend', onGlideEnd);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.removeEventListener('scroll', schedule);
+			window.removeEventListener('resize', schedule);
+			window.removeEventListener('glidestart', onGlideStart);
+			window.removeEventListener('glideend', onGlideEnd);
+		};
+	});
+
 	let sentinel = $state<HTMLElement>();
 	let stuck = $state(false);
 
@@ -213,6 +268,7 @@
 				{#each sections as [id, label], i (id)}
 					<a
 						href={`#${id}`}
+						aria-current={active === id ? 'location' : undefined}
 						onclick={() => (mobileOpen = false)}
 						in:fly={{ y: -8, duration: motion(200), delay: motion(40 + i * 35), easing: cubicOut }}
 					>{label}</a>
@@ -225,7 +281,7 @@
 		<span class="paper" aria-hidden="true"></span>
 		<span class="logo-slot" aria-hidden="true" bind:this={slot}></span>
 		{#each sections as [id, label] (id)}
-			<a href={`#${id}`}>{label}</a>
+			<a href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>
 		{/each}
 	</nav>
 
@@ -285,7 +341,7 @@
 		</nav>
 	</section>
 
-	<section id="about" class="about" aria-label="About">
+	<section id="about" class="about note" aria-label="About">
 		<p class="lead">Upstate NY bluegrass quintet</p>
 		<dl class="lineup">
 			{#each lineup as [instrument, name] (name)}
@@ -294,7 +350,7 @@
 			{/each}
 		</dl>
 		<p>
-			Since forming in March 2026, the band has played the Green Mountain Bluegrass &amp; Roots Festival, the
+			Since forming in March 2026, the band has played at the Green Mountain Bluegrass &amp; Roots Festival, the
 			GottaGetGon Folk Festival, S&amp;S Farm Brewery's "Brewgrass" Festival, and venues all around the
 			Capital Region.
 		</p>
@@ -382,7 +438,9 @@
 		top: 0;
 		z-index: 10;
 		align-self: stretch;
-		margin: 0 -2rem max(1.5rem, var(--landing-space));
+		/* The bottom margin gives back what the top padding grows by, so docking
+		   never shifts the page under a scroll in progress */
+		margin: 0 -2rem calc(max(1.5rem, var(--landing-space)) - var(--header-lift) * var(--dock, 0));
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -426,7 +484,8 @@
 		transition: color 120ms ease;
 	}
 
-	.menu a:hover {
+	.menu a:hover,
+	.menu a[aria-current] {
 		color: var(--color-link-hover);
 	}
 
@@ -557,6 +616,12 @@
 			align-items: center;
 			gap: 0.25rem;
 			padding: 0.75rem 0 1rem;
+			/* Reach the sheet up behind the bar so no seam or shadow shows where they meet */
+			--reach: calc(3.5rem + var(--header-lift));
+		}
+
+		.mobile-sections .paper {
+			--mottle-size: 100% 100vh;
 		}
 
 		.mobile-sections a {
@@ -569,7 +634,8 @@
 			text-decoration: none;
 		}
 
-		.mobile-sections a:hover {
+		.mobile-sections a:hover,
+		.mobile-sections a[aria-current] {
 			color: var(--color-link-hover);
 		}
 	}
@@ -590,37 +656,19 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--line);
-		position: relative;
 		box-sizing: border-box;
 		width: min(34rem, 100%);
 		margin-top: 1.5rem;
 		/* Nudge text down so it sits just above each rule */
 		padding: calc(var(--line) + 0.3rem) 2rem calc(var(--line) - 0.3rem);
-		background-color: var(--gb-bg0-h);
 		background-image: repeating-linear-gradient(
 			transparent 0 calc(var(--line) - 1px),
 			var(--gb-bg1) calc(var(--line) - 1px) var(--line)
 		);
-		border-radius: 2px;
-		box-shadow:
-			0 1px 2px rgba(60, 56, 54, 0.15),
-			0 6px 16px rgba(60, 56, 54, 0.12);
 		transform: rotate(-1deg);
 	}
 
 	/* Tape strip */
-	.about::before {
-		content: '';
-		position: absolute;
-		top: -0.7rem;
-		left: 50%;
-		width: 6.5rem;
-		height: 1.4rem;
-		background: rgba(215, 153, 33, 0.35);
-		box-shadow: 0 1px 2px rgba(60, 56, 54, 0.12);
-		transform: translateX(-50%) rotate(2deg);
-	}
-
 	.about p {
 		margin: 0;
 		color: var(--color-text-muted);
@@ -670,7 +718,7 @@
 
 	.contact h1 {
 		margin: 0;
-		font-size: 1.25rem;
+		font-size: var(--section-heading);
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 	}
@@ -695,7 +743,7 @@
 
 	.socials-section h1 {
 		margin: 0;
-		font-size: 1.25rem;
+		font-size: var(--section-heading);
 		letter-spacing: 0.14em;
 		color: var(--color-text-subtle);
 	}
