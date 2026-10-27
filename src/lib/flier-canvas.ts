@@ -519,11 +519,42 @@ function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, basel
 	ctx.restore();
 }
 
+// The logo and venue head as the polaroid and ticket set it: a modest logo, the venue and
+// address as large as fit beside it, the venue held back a little under the address
+const HEAD_TYPE = { maxLogo: 440, venueSize: 56, addressSize: 36, maxVenue: 80, venueRatio: 0.85, addressRatio: 0.62 };
+
 // Logo on the left, venue and address right aligned beside it, between `left` and `right`.
 // The text keeps the room its longest word or address line needs; the logo grows into the rest.
 function logoHead(
 	s: Scene,
-	{ left, right, top, accent, ink, maxLogo = 560 }: { left: number; right: number; top: number; accent: string; ink: string; maxLogo?: number }
+	{
+		left,
+		right,
+		top,
+		accent,
+		ink,
+		maxLogo = 560,
+		venueSize: baseVenue = 52,
+		addressSize: baseAddress = 30,
+		maxVenue = baseVenue,
+		venueRatio = 1,
+		addressRatio = 0.56
+	}: {
+		left: number;
+		right: number;
+		top: number;
+		accent: string;
+		ink: string;
+		maxLogo?: number;
+		venueSize?: number;
+		addressSize?: number;
+		// The venue grows up to this while it and the address still fit beside the logo
+		maxVenue?: number;
+		// The venue set at this share of the size the fit chose, leaving the address as it is
+		venueRatio?: number;
+		// The address against the venue size the fit tries
+		addressRatio?: number;
+	}
 ) {
 	const { ctx, fields } = s;
 	const inner = right - left;
@@ -536,18 +567,34 @@ function logoHead(
 	};
 	const textWidth = Math.min(
 		inner - 320,
-		Math.max(380, widest(`800 52px ${FONT}`, fields.venue.toUpperCase().split(/\s+/)), widest(`500 30px ${FONT}`, fields.address.split('\n')))
+		Math.max(
+			380,
+			widest(`800 ${baseVenue}px ${FONT}`, fields.venue.toUpperCase().split(/\s+/)),
+			widest(`500 ${baseAddress}px ${FONT}`, fields.address.split('\n'))
+		)
 	);
 	const logoWidth = Math.min(maxLogo, inner - 40 - textWidth);
 	const height = logoHeight(s, logoWidth) * LOGO_VISUAL;
 	const maxWidth = inner - 40 - logoWidth;
 	drawLogo(s, logoWidth, left + logoWidth / 2, top);
+	// Largest type whose lines fit the logo's height, from the cap height of each line and its gaps
+	const addressCount = Math.max(1, fields.address.split('\n').filter((part) => part.trim()).length);
+	let venueSize = maxVenue;
+	let addressSize = baseAddress;
+	for (; venueSize > baseVenue; venueSize -= 2) {
+		addressSize = Math.max(baseAddress, Math.round(venueSize * addressRatio));
+		const count = wrap(ctx, fields.venue, `800 ${venueSize}px ${FONT}`, maxWidth, 4).length;
+		const tall = count * venueSize * 0.72 + (count - 1) * 12 + 20 + addressCount * addressSize * 0.72 + (addressCount - 1) * 14;
+		if (tall <= height - 24) break;
+	}
+	if (venueSize <= baseVenue) [venueSize, addressSize] = [baseVenue, baseAddress];
+	venueSize = Math.round(venueSize * venueRatio);
 	const lines = [
 		// Long names wrap beside the logo rather than shrink
-		...wrap(ctx, fields.venue, `800 52px ${FONT}`, maxWidth, 4).map((part, i) =>
-			line(s, 'venue', part, { size: 52, weight: 800, color: accent, gap: i ? 12 : 0, upper: true })
+		...wrap(ctx, fields.venue, `800 ${venueSize}px ${FONT}`, maxWidth, 4).map((part, i) =>
+			line(s, 'venue', part, { size: venueSize, weight: 800, color: accent, gap: i ? 12 : 0, upper: true })
 		),
-		...addressLines(s, (i) => ({ size: 30, weight: 500, color: ink, gap: i ? 14 : 20 }))
+		...addressLines(s, (i) => ({ size: addressSize, weight: 500, color: ink, gap: i ? 14 : 20 }))
 	];
 	// Hung from the top of the logo; stack sets lines from their foot, so find it from their caps
 	const tall = lines.reduce((sum, l, i) => sum + (l.empty ? 0 : (i ? l.gap : 0) + l.size * 0.72), 0);
@@ -664,7 +711,7 @@ function classic(s: Scene): FlierLayout {
 // A taped up instant print between a logo and venue head and the date along the foot
 function polaroid(s: Scene): FlierLayout {
 	const { ctx, palette, fields } = s;
-	const head = logoHead(s, { left: PAD, right: WIDTH - PAD, top: 40, accent: palette.accent, ink: palette.text, maxLogo: 520 });
+	const head = logoHead(s, { left: PAD, right: WIDTH - PAD, top: 40, accent: palette.accent, ink: palette.text, ...HEAD_TYPE });
 
 	// Date and time down the left, entry right, along the foot
 	const when = stack(
@@ -838,7 +885,9 @@ function ticket(s: Scene): FlierLayout {
 	ctx.stroke();
 	ctx.restore();
 
-	const head = logoHead(s, { left: t.x + 44, right: t.x + t.w - 44, top: t.y + 40, accent: mark, ink });
+	const head = logoHead(s, {
+		left: t.x + 44, right: t.x + t.w - 44, top: t.y + 40, accent: mark, ink, ...HEAD_TYPE
+	});
 
 	// The picture fills the rest of the ticket down to the tear line
 	const photoTop = head.bottom + 48;
