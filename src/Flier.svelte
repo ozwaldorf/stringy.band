@@ -83,7 +83,6 @@
 		arch: 'M3 28V12a9 9 0 0 1 18 0v16z',
 		oval: 'M12 2a9 13 0 1 0 0.01 0z',
 		rounded: 'M7 2h10a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z',
-		diamond: 'M12 1l10 14-10 14L2 15z',
 		hexagon: 'M12 1l10 7v14l-10 7-10-7V8z',
 		circle: 'M12 2a10 10 0 1 0 0.01 0z',
 		square: 'M3 3h18v18H3z',
@@ -152,7 +151,8 @@
 	const sideOf = (key: Key): 'left' | 'right' => {
 		if (key === 'photo') return 'left';
 		if (!isText(key)) return 'right';
-		return layout?.text[key]?.align === 'right' ? 'right' : 'left';
+		const box = layout?.text[key];
+		return box?.side ?? (box?.align === 'right' ? 'right' : 'left');
 	};
 	const visible = $derived(CALLOUTS.map((c) => ({ ...c, side: sideOf(c.key) })));
 	const palette = $derived(PALETTES.find((p) => p.name === paletteName) ?? PALETTES[0]);
@@ -225,6 +225,23 @@
 		const allowed = LAYOUT_SHAPES[design];
 		if (allowed && !allowed.includes(untrack(() => shape))) shape = allowed[0];
 	});
+
+	// An element's size, reported a frame later: the layout it feeds can change that size again,
+	// which, answered within the same frame, loops the browser's resize observer
+	function watchSize(report: (width: number, height: number) => void) {
+		return (el: HTMLElement) => {
+			let frame = 0;
+			const observer = new ResizeObserver(() => {
+				cancelAnimationFrame(frame);
+				frame = requestAnimationFrame(() => report(el.clientWidth, el.clientHeight));
+			});
+			observer.observe(el);
+			return () => {
+				cancelAnimationFrame(frame);
+				observer.disconnect();
+			};
+		};
+	}
 
 	function openCallout(key: Key) {
 		if (isText(key)) openEditor(key);
@@ -330,16 +347,20 @@
 
 	// Where each leader line meets its element, in flier pixels
 	function anchor(key: Key, l: FlierLayout): [number, number] | undefined {
-		if (key === 'photo') return [l.photo.x + 28, l.photo.y + l.photo.h * 0.3];
+		if (key === 'photo') return l.photoAnchor ?? [l.photo.x + 28, l.photo.y + l.photo.h * 0.3];
 		if (key === 'colour') return l.field;
 		if (key === 'qr') return [l.qr.x + l.qr.w + 14, l.qr.y + l.qr.h / 2];
 		const box = l.text[key];
 		if (!box) return;
 		if (box.anchor && sideOf(key) === 'left') return box.anchor;
-		if (box.align === 'right') return [box.x + box.w + 14, box.baselines[0] - box.size * 0.3];
+		// Right aligned text meets its callout at its right end, or at its left when the callout is on the left
+		if (box.align === 'right') return [sideOf(key) === 'left' ? box.x - 14 : box.x + box.w + 14, box.baselines[0] - box.size * 0.3];
 		// A right hand label meets left aligned text where it ends
 		return sideOf(key) === 'right' ? [box.end + 14, box.y + box.h / 2] : [box.x - 14, box.y + box.h / 2];
 	}
+
+	// A callout's place down its column: where its line meets the flier, unless the layout says otherwise
+	const sortY = (key: Key, a?: [number, number]) => layout?.text[key as TextKey]?.sortY ?? a?.[1] ?? 0;
 
 	// Each callout sits level with its element, pushed apart where they would overlap
 	function place() {
@@ -355,9 +376,9 @@
 				const el = callouts[key]!;
 				const mid = (el.firstElementChild as HTMLElement).offsetHeight / 2;
 				const a = anchor(key, layout!);
-				if (a) want = a[1] * scale - mid;
+				if (a) want = key === 'photo' && layout!.photoCalloutY !== undefined ? layout!.photoCalloutY * scale : a[1] * scale - mid;
 				return { key, el, mid, a, h: el.offsetHeight, y: want };
-			}).sort((a, b) => (a.a?.[1] ?? 0) - (b.a?.[1] ?? 0));
+			}).sort((a, b) => sortY(a.key, a.a) - sortY(b.key, b.a));
 			if (items.reduce((sum, item) => sum + item.h + CALLOUT_GAP, -CALLOUT_GAP) > r.height) {
 				failed = { width: stageWidth, design };
 				narrow = true;
@@ -380,7 +401,9 @@
 				const x1 = (side === 'left' ? box.right : box.left) - s.left;
 				const y1 = box.top - s.top + y + mid;
 				const x2 = r.left - s.left + a[0] * scale;
-				const y2 = r.top - s.top + a[1] * scale;
+				// A colour callout with a clear stretch of background meets it level
+				const span = key === 'colour' ? layout.fieldSpan : undefined;
+				const y2 = span ? clamp(y1, r.top - s.top + span[0] * scale, r.top - s.top + span[1] * scale) : r.top - s.top + a[1] * scale;
 				// Level out of the label, then bend halfway across the gap toward the element
 				const bend = (x1 + (side === 'left' ? r.left : r.right) - s.left) / 2;
 				lines.push({
@@ -787,11 +810,58 @@
 	</svg>
 {/snippet}
 
+{#snippet showPicker()}
+	<select autocomplete="off" class="show" bind:value={showId} onchange={pickShow} aria-label="Show">
+		{#each groups as group (group.label)}
+			<optgroup label={group.label}>
+				{#each group.shows as show (show.uid)}
+					<option value={show.uid}>{show.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} - {show.summary}</option>
+				{/each}
+			</optgroup>
+		{/each}
+	</select>
+{/snippet}
+
+{#snippet actionButtons()}
+	<div class="actions">
+		<button class="icon-button" type="button" onclick={randomize} aria-label="Randomize" title="Randomize">
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.8" />
+				{#each [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]] as [cx, cy] (`${cx},${cy}`)}
+					<circle {cx} {cy} r="1.6" fill="currentColor" />
+				{/each}
+			</svg>
+		</button>
+		{#if canShare}
+			<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
+		{/if}
+		<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
+	</div>
+{/snippet}
+
+{#snippet layoutPicker()}
+	<div class="layouts" role="radiogroup" aria-label="Layout">
+		{#each DESIGNS as d (d.name)}
+			<label class="layout" title={d.label}>
+				<input type="radio" autocomplete="off" name="layout" value={d.name} bind:group={design} aria-label={d.label} />
+				<span>{@render thumb(d.name)}</span>
+			</label>
+		{/each}
+	</div>
+{/snippet}
+
 <main class="flier shop-page" tabindex="-1">
 	<h1 class="visually-hidden">Flier generator</h1>
 
 
-	<div class="stage" class:narrow bind:this={stage} bind:clientWidth={stageWidth} bind:clientHeight={stageHeight}>
+	<!-- One bar over the flier: show, layout and actions in a row, or stacked on phones -->
+	<div class="toolbar" class:narrow>
+		{@render showPicker()}
+		{@render layoutPicker()}
+		{@render actionButtons()}
+	</div>
+
+	<div class="stage" class:narrow bind:this={stage} {@attach watchSize((w, h) => ([stageWidth, stageHeight] = [w, h]))}>
 		{#each narrow ? [] : ['left', 'right'] as side (side)}
 			<div class="gutter {side}">
 				{#each visible.filter((c) => c.side === side) as c (c.key)}
@@ -813,7 +883,7 @@
 			</div>
 		{/each}
 
-		<div class="sheet" bind:this={sheet} bind:clientWidth={sheetWidth}>
+		<div class="sheet" bind:this={sheet} {@attach watchSize((w) => (sheetWidth = w))}>
 			<canvas
 				bind:this={canvas}
 				width={WIDTH}
@@ -886,39 +956,6 @@
 	</div>
 
 
-	<div class="toolbar" class:narrow>
-		<select autocomplete="off" class="show" bind:value={showId} onchange={pickShow} aria-label="Show">
-			{#each groups as group (group.label)}
-				<optgroup label={group.label}>
-					{#each group.shows as show (show.uid)}
-						<option value={show.uid}>{show.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} - {show.summary}</option>
-					{/each}
-				</optgroup>
-			{/each}
-		</select>
-		<div class="layouts" role="radiogroup" aria-label="Layout">
-			{#each DESIGNS as d (d.name)}
-				<label class="layout" title={d.label}>
-					<input type="radio" autocomplete="off" name="layout" value={d.name} bind:group={design} aria-label={d.label} />
-					<span>{@render thumb(d.name)}</span>
-				</label>
-			{/each}
-		</div>
-		<div class="actions">
-			<button class="icon-button" type="button" onclick={randomize} aria-label="Randomize" title="Randomize">
-				<svg viewBox="0 0 24 24" aria-hidden="true">
-					<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-					{#each [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]] as [cx, cy] (`${cx},${cy}`)}
-						<circle {cx} {cy} r="1.6" fill="currentColor" />
-					{/each}
-				</svg>
-			</button>
-			{#if canShare}
-				<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
-			{/if}
-			<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
-		</div>
-	</div>
 
 	<!-- Phones skip the callouts: text is tapped on the flier, the rest is laid out here -->
 	{#if narrow}
@@ -1008,10 +1045,29 @@
 		gap: 0.5rem;
 	}
 
-	/* Phones give the actions a row of their own */
-	.toolbar.narrow .actions {
+	/* Phones give the show picker a row, the layouts and actions share the next when they fit */
+	.toolbar.narrow select.show {
 		flex-basis: 100%;
+	}
+
+	.toolbar.narrow .layouts {
 		justify-content: center;
+		gap: 0.6rem;
+	}
+
+	.toolbar.narrow .layout svg {
+		width: 2.25rem;
+		height: 2.8rem;
+	}
+
+	/* The phone bar's bigger icons set its height; the buttons and picker match them */
+	.toolbar.narrow .icon-button {
+		width: calc(2.8rem + 8px);
+		height: calc(2.8rem + 8px);
+	}
+
+	.toolbar.narrow select {
+		min-height: calc(2.8rem + 8px);
 	}
 
 	.layouts {
@@ -1041,10 +1097,11 @@
 		color: var(--color-text-subtle);
 	}
 
+	/* 44px with its padding and border, level with the buttons and the show picker */
 	.layout svg {
 		display: block;
-		width: 1.6rem;
-		height: 2rem;
+		width: 1.8rem;
+		height: 2.25rem;
 		fill: currentColor;
 		stroke: currentColor;
 		stroke-width: 0;
@@ -1272,6 +1329,38 @@
 		font: inherit;
 		font-size: 0.9rem;
 		font-weight: 400;
+	}
+
+	/* Dropdowns draw their own chevron in the page's muted ink, in place of the browser's */
+	.panel select,
+	.toolbar select {
+		appearance: none;
+		padding: 0.5rem 2.2rem 0.5rem 0.75rem;
+		border-radius: 8px;
+		background: var(--color-surface)
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23665c54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+			no-repeat right 0.8rem center / 0.75rem;
+		font-weight: 500;
+		text-overflow: ellipsis;
+		cursor: pointer;
+		transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+	}
+
+	.panel select:hover,
+	.toolbar select:hover {
+		border-color: var(--color-accent);
+	}
+
+	.panel select:focus-visible,
+	.toolbar select:focus-visible {
+		outline: none;
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+	}
+
+	/* Level with the 44px buttons beside it */
+	.toolbar select {
+		min-height: 2.75rem;
 	}
 
 	.panel input[type='file'] {
