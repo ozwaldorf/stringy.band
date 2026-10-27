@@ -20,6 +20,7 @@
 		max-width: 42rem;
 		margin: auto;
 		padding: 2rem;
+		--footer-bleed: 2rem;
 		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
