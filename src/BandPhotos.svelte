@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { cubicOut } from 'svelte/easing';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import { fade } from 'svelte/transition';
 	import BandPhoto from './BandPhoto.svelte';
 	import { landscapePhotos, portraitPhotos, type Photo } from './lib/photos';
 
@@ -37,22 +40,131 @@
 		return () => observer.disconnect();
 	});
 
+	// The print in hand, and the one whose spot stays empty until it has been set back down
+	let held: number | null = $state(null);
+	let lifted: number | null = $state(null);
+	let elements: (HTMLElement | undefined)[] = $state([]);
+	let backdrop: HTMLButtonElement | undefined = $state();
+
 	$effect(() => {
 		if (!visible) return;
 		const timer = setInterval(() => {
-			if (document.hidden) return;
+			if (document.hidden || lifted !== null) return;
 			const print = tick++ % prints.length;
 			indexes[print] = (indexes[print] + 1) % prints[print].length;
 		}, INTERVAL / prints.length);
 		return () => clearInterval(timer);
 	});
+
+	$effect(() => {
+		if (held !== null) backdrop?.focus();
+	});
+
+	let pickedAt = 0;
+
+	// The held copy is laid out at the print's own size and only scaled up, so it starts
+	// as an exact match for the print in the collage: borders, caption and all
+	let heldWidth = $state(0);
+	let heldScale = $state(1);
+	let heldTape = $state('');
+
+	function pickUp(print: number) {
+		const source = elements[print];
+		if (!source) return;
+		const { offsetWidth: width, offsetHeight: height } = source;
+		heldWidth = width;
+		// Its tape angle comes from its spot in the collage, which the copy is drawn outside of
+		heldTape = getComputedStyle(source).getPropertyValue('--tape-tilt');
+		heldScale = Math.min((innerWidth * 0.92) / width, (innerHeight * 0.88) / height, 896 / width);
+		held = lifted = print;
+		pickedAt = performance.now();
+	}
+
+	function putDown() {
+		// A Space press picks up on keyup, which would land on the backdrop and drop it again
+		if (held === null || performance.now() - pickedAt < 250) return;
+		const print = held;
+		held = null;
+		elements[print]?.querySelector('button')?.focus({ preventScroll: true });
+	}
+
+	// Shadow of a print held off the page, grown in as it lifts
+	const heldShadow = (t: number) =>
+		`drop-shadow(0 ${(12 * t).toFixed(1)}px ${(20 * t).toFixed(1)}px rgba(40, 28, 16, ${(0.4 * t).toFixed(3)}))`;
+
+	// Flies the held print between its spot in the collage and the middle of the screen
+	function lift(node: HTMLElement, { source, scale }: { source?: HTMLElement; scale: number }) {
+		if (!source) return {};
+		const from = source.getBoundingClientRect();
+		const to = node.getBoundingClientRect();
+		const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+		const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+		const tilt = (parseFloat(getComputedStyle(source).getPropertyValue('--tilt')) || 0) - HELD_TILT;
+		// A print picked up from under the pointer is already pulled out a little
+		const start = source.matches(':has(> .pick:hover)')
+			? parseFloat(getComputedStyle(source).getPropertyValue('--pull-scale')) || 1
+			: 1;
+		return {
+			duration: prefersReducedMotion.current ? 0 : 450,
+			easing: cubicOut,
+			css: (t: number, u: number) => `
+				transform: translate(${dx * u}px, ${dy * u}px) scale(${start + (scale - start) * t}) rotate(${tilt * u}deg);
+				filter: ${heldShadow(t)};
+			`
+		};
+	}
+
+	const HELD_TILT = -1;
+
+	// Ancestors that transform the page would trap a fixed overlay, so it lives on <body>;
+	// Svelte still removes it there once its outro finishes
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node);
+	}
 </script>
 
+<svelte:window onkeydown={(event) => event.key === 'Escape' && putDown()} />
+
 <div class="band-photos" bind:this={collage}>
-	<BandPhoto class="first" photos={prints[0]} index={indexes[0]} />
-	<BandPhoto class="second" sideways photos={prints[1]} index={indexes[1]} />
-	<BandPhoto class="third" photos={prints[2]} index={indexes[2]} />
+	{#each ['first', 'second', 'third'] as name, print (name)}
+		<BandPhoto
+			class={name}
+			sideways={print === 1}
+			photos={prints[print]}
+			index={indexes[print]}
+			onpick={() => pickUp(print)}
+			style={lifted === print ? 'visibility: hidden' : ''}
+			bind:element={elements[print]}
+		/>
+	{/each}
 </div>
+
+{#if held !== null && lifted !== null}
+	<!-- Reads `lifted`, which outlasts `held` until the print is back in its spot, so the outro knows where to fly -->
+	<div use:portal>
+		<button
+			class="backdrop"
+			aria-label="Put the photo down"
+			onclick={putDown}
+			bind:this={backdrop}
+			transition:fade={{ duration: prefersReducedMotion.current ? 0 : 300 }}
+		></button>
+		<div class="held" style="--tilt: {HELD_TILT}deg">
+			<div
+				style="transform: scale({heldScale}); filter: {heldShadow(1)}"
+				transition:lift={{ source: elements[lifted], scale: heldScale }}
+				onoutroend={() => (lifted = null)}
+			>
+				<BandPhoto
+					sideways={lifted === 1}
+					photos={prints[lifted]}
+					index={indexes[lifted]}
+					style="width: {heldWidth}px; --tape-tilt: {heldTape}"
+				/>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	/* Three overlapping prints scattered down the column */
@@ -91,6 +203,26 @@
 		z-index: 2;
 		--tilt: 3deg;
 		--tape-tilt: -2deg;
+	}
+
+	/* Dims the page behind the print in hand; a click anywhere sets it back down */
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		padding: 0;
+		border: none;
+		background: rgba(40, 28, 16, 0.6);
+		cursor: pointer;
+	}
+
+	.held {
+		position: fixed;
+		inset: 0;
+		z-index: 101;
+		display: grid;
+		place-items: center;
+		pointer-events: none;
 	}
 
 	/* Past the column edge only where there is room, so phones never scroll sideways */

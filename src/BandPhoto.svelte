@@ -6,12 +6,16 @@
 		photos,
 		index,
 		sideways = false,
+		onpick,
+		element = $bindable(),
 		class: className = '',
 		style = ''
 	}: {
 		photos: { src: string; caption: string }[];
 		index: number;
 		sideways?: boolean;
+		onpick?: () => void;
+		element?: HTMLElement;
 		class?: string;
 		style?: string;
 	} = $props();
@@ -24,7 +28,10 @@
 	});
 </script>
 
-<figure class="band-photo note {className}" class:sideways {style}>
+<figure class="band-photo note {className}" class:sideways {style} bind:this={element}>
+	{#if onpick}
+		<button class="pick" aria-label="Pick up photo: {photos[index].caption}" onclick={onpick}></button>
+	{/if}
 	<div class="frame">
 		{#key index}
 			<img src={photos[index].src} alt={photos[index].caption} transition:fade={{ duration }} />
@@ -44,6 +51,26 @@
 		margin: 0;
 		padding: var(--pad, 0.75rem) var(--pad, 0.75rem) calc(var(--pad, 0.75rem) * 3.3);
 		transform: rotate(var(--tilt, 1.5deg));
+		transition:
+			transform 200ms ease,
+			box-shadow 200ms ease;
+		--pull-scale: 1.04;
+	}
+
+	/* Pulled a little off the page under the pointer, ahead of being picked up */
+	.band-photo:has(> .pick:hover),
+	.band-photo:has(> .pick:focus-visible) {
+		z-index: 3;
+		transform: translateY(-0.35rem) rotate(var(--tilt, 1.5deg)) scale(var(--pull-scale));
+		box-shadow:
+			0 2px 4px rgba(60, 56, 54, 0.15),
+			0 14px 28px rgba(60, 56, 54, 0.2);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.band-photo {
+			transition: none;
+		}
 	}
 
 	/* The same print turned on its side: the wide strip runs down the right */
@@ -88,6 +115,22 @@
 		width: calc(var(--pad, 0.75rem) * 3.3);
 		height: auto;
 		writing-mode: vertical-rl;
+	}
+
+	/* Covers the whole print so a click anywhere on it picks it up */
+	.pick {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		padding: 0;
+		border: none;
+		background: none;
+		cursor: pointer;
+	}
+
+	.pick:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 4px;
 	}
 
 	/* Reads bottom to top, like writing along the strip with the print turned back upright */
