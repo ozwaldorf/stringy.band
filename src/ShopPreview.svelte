@@ -10,7 +10,7 @@
 	const featured = $derived([
 		...featuredHandles.flatMap((handle) => $groupedProducts.filter((product) => product.handle === handle)),
 		...$groupedProducts.filter((product) => !featuredHandles.includes(product.handle))
-	].filter((product) => product.available).slice(0, 3));
+	].filter((product) => product.available).slice(0, 4));
 
 	onMount(() => { void refreshCatalog().catch(() => {}); });
 </script>
@@ -26,9 +26,11 @@
 </section>
 
 <style>
+	/* One row of cards; wider screens fit more columns at the same card size */
 	section {
+		--cols: 3;
 		width: 100%;
-		max-width: 48rem;
+		max-width: calc(var(--cols) * 15rem + (var(--cols) - 1) * 1.5rem);
 		margin-top: 1.5rem;
 		display: flex;
 		flex-direction: column;
@@ -37,7 +39,7 @@
 
 	.products {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
 		gap: 1.5rem;
 		/* Room for the tape that overhangs each card */
 		padding-top: 1rem;
@@ -57,8 +59,18 @@
 		text-transform: uppercase;
 	}
 
-	@media (max-width: 500px) {
-		.products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
-		.products :global(.product:last-child) { display: none; }
+	/* Cards past the column count are hidden so the row never wraps */
+	@media (max-width: 768px) {
+		section { --cols: 2; }
+		.products { gap: 1.25rem; }
+		.products > :global(.product:nth-child(n + 3)) { display: none; }
+	}
+
+	@media (min-width: 769px) and (max-width: 1099px) {
+		.products > :global(.product:nth-child(n + 4)) { display: none; }
+	}
+
+	@media (min-width: 1100px) {
+		section { --cols: 4; }
 	}
 </style>
