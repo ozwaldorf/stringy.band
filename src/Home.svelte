@@ -13,6 +13,7 @@
 	import Videos from './Videos.svelte';
 	import videoData from './lib/videos.json';
 	import ShopPreview from './ShopPreview.svelte';
+	import BandPhotos from './BandPhotos.svelte';
 	import Footer from './Footer.svelte';
 	import { glideTarget, glideTo, gliding } from './lib/scroll';
 
@@ -388,23 +389,26 @@
 		</nav>
 	</section>
 
-	<section id="about" class="about note" aria-label="About">
-		<p class="lead">Upstate NY bluegrass quintet</p>
-		<dl class="lineup">
-			{#each lineup as [instrument, name] (name)}
-				<dt>{instrument}</dt>
-				<dd>{name}</dd>
-			{/each}
-		</dl>
-		<p>
-			Since forming in March 2026, the band has played at the Green Mountain Bluegrass &amp; Roots Festival, the
-			GottaGetGon Folk Festival, S&amp;S Farm Brewery's "Brewgrass" Festival, and venues all around the
-			Capital Region.
-		</p>
-		<p>
-			Their influences include the Bluegrass Album Band, Tony Rice, Doc Watson, Rhonda Vincent, Ricky
-			Skaggs, David Grisman, and many more. They're currently recording original songs, many already debuted live at shows.
-		</p>
+	<section id="about" class="about" aria-label="About">
+		<div class="about-note note">
+			<p class="lead">Upstate NY bluegrass quintet</p>
+			<dl class="lineup">
+				{#each lineup as [instrument, name] (name)}
+					<dt>{instrument}</dt>
+					<dd>{name}</dd>
+				{/each}
+			</dl>
+			<p>
+				Since forming in March 2026, the band has played at the Green Mountain Bluegrass &amp; Roots Festival, the
+				GottaGetGon Folk Festival, S&amp;S Farm Brewery's "Brewgrass" Festival, and venues all around the
+				Capital Region.
+			</p>
+			<p>
+				Their influences include the Bluegrass Album Band, Tony Rice, Doc Watson, Rhonda Vincent, Ricky
+				Skaggs, David Grisman, and many more. They're currently recording original songs, many already debuted live at shows.
+			</p>
+		</div>
+		<BandPhotos />
 	</section>
 
 	<Videos />
@@ -717,6 +721,16 @@
 	}
 
 	.about {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: center;
+		gap: 3rem 4rem;
+		width: 100%;
+		margin-top: 1.5rem;
+	}
+
+	.about-note {
 		/* One ruled line; all text and spacing snap to it */
 		--line: 1.6rem;
 		display: flex;
@@ -725,7 +739,6 @@
 		gap: var(--line);
 		box-sizing: border-box;
 		width: min(34rem, 100%);
-		margin-top: 1.5rem;
 		/* Nudge text down so it sits just above each rule */
 		padding: calc(var(--line) + 0.3rem) 2rem calc(var(--line) - 0.3rem);
 		background-image: repeating-linear-gradient(
@@ -735,8 +748,7 @@
 		transform: rotate(-1deg);
 	}
 
-	/* Tape strip */
-	.about p {
+	.about-note p {
 		margin: 0;
 		color: var(--color-text-muted);
 		font-size: 1rem;
@@ -744,7 +756,7 @@
 		text-align: left;
 	}
 
-	.about .lead {
+	.about-note .lead {
 		color: var(--color-text);
 		font-size: 1.1rem;
 		text-align: center;
