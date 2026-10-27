@@ -784,9 +784,9 @@ function polaroid(s: Scene): FlierLayout {
 	ctx.restore();
 
 	// The QR code: a cream sticker over the print's corner, hanging off it, still clear of the
-	// entry below, and kept on the flier when the print runs wide
+	// entry below, and kept inside the margin when the print runs wide
 	const qrSize = 270;
-	const qrX = Math.min(card.w / 2 + 10, WIDTH - 24 - qrSize / 2 - cx);
+	const qrX = Math.min(card.w / 2 + 10, WIDTH - PAD - qrSize / 2 - cx);
 	const qr = drawQr({ ...s, qr: { tile: QR_TILES[0].bg } }, ...turn(cx, cy, angle, qrX, card.h / 2 - 40), qrSize, PRINT, 0.1);
 	// The tagline written in the margin, ending short of the sticker
 	const end = Math.min(card.w / 2 - 180, qrX - qrSize / 2 - 20);
