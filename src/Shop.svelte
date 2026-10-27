@@ -28,9 +28,10 @@
 
 <div class="shop-page">
 	<header>
+		<span class="paper" aria-hidden="true"></span>
 		<a class="brand" href="/" aria-label="Stringy and the Beans home"><img src="/logo.svg" alt="" width="1000" height="700" /></a>
 		<nav aria-label="Shop navigation">
-			<a class="back-link" href={handle && handle !== 'bag' ? '/shop' : '/'}><IconArrowLeft aria-hidden="true" /> <span>{handle && handle !== 'bag' ? 'All merch' : 'Back to band'}</span></a>
+			<a class="back-link" href={handle && handle !== 'bag' ? '/shop' : '/#merch'}><IconArrowLeft aria-hidden="true" /> <span>{handle && handle !== 'bag' ? 'All merch' : 'Back to band'}</span></a>
 			<a class="bag-link" class:current={handle === 'bag'} href="/shop/bag" aria-current={handle === 'bag' ? 'page' : undefined} aria-label={`Bag, ${bagCount} item${bagCount === 1 ? '' : 's'}`}><IconBag /> Bag <span class="bag-count">{bagCount}</span></a>
 		</nav>
 	</header>
@@ -80,29 +81,29 @@
 
 <style>
 	.shop-page { min-height: 100dvh; max-width: 64rem; margin: auto; padding: 1rem 2rem; box-sizing: border-box; display: flex; flex-direction: column; }
-	header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border-subtle); }
+	/* Sticky torn paper sheet, matching the home header; the negative margin reaches the top of the page */
+	header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4rem; box-sizing: border-box; margin-top: -1rem; padding-top: 0.5rem; }
+	header .paper { left: calc(50% - 50vw); right: calc(50% - 50vw); }
 	nav { display: flex; align-items: center; gap: 1.5rem; }
-	.back-link, .bag-link { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; font-size: 0.8rem; text-decoration: none; }
-	.back-link:hover { text-decoration: underline; }
-	.bag-link { white-space: nowrap; padding: 0 0.8rem; border: 1px solid var(--color-border-subtle); border-radius: 4px; color: var(--color-text); }
-	.bag-link:hover, .bag-link.current { background: var(--color-bg-subtle); border-color: var(--color-border); }
+	/* Same type as the home section links */
+	.back-link, .bag-link { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; color: var(--color-text-subtle); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; transition: color 120ms ease; }
+	.back-link:hover, .bag-link:hover, .bag-link.current { color: var(--color-link-hover); }
+	.bag-link { white-space: nowrap; }
 	.bag-count { min-width: 1.25rem; text-align: center; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 	.brand { display: block; flex-shrink: 0; }
-	.brand img { display: block; width: 6rem; height: auto; }
-	main { flex: 1; padding-top: 1.75rem; }
+	.brand img { display: block; width: auto; height: 2.5rem; }
+	main { flex: 1; padding-top: 2.75rem; }
 	.catalog-meta { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-subtle); color: var(--color-text-muted); font-size: 0.75rem; }
 	.catalog-meta p { margin: 0; }
 	.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem 1.25rem; }
 	@media (max-width: 760px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 	@media (max-width: 600px) {
-		.shop-page { padding: 0.75rem 1.25rem; }
-		header { gap: 0.75rem; }
+		.shop-page { padding: 0.75rem 1.25rem; --footer-bleed: 0.75rem; }
+		header { gap: 0.75rem; margin-top: -0.75rem; }
 		nav { gap: 0.75rem; }
-		.brand img { width: 5rem; }
-		.back-link, .bag-link { font-size: 0.75rem; gap: 0.25rem; }
-		.bag-link { padding: 0 0.5rem; }
+		.back-link, .bag-link { font-size: 0.8rem; letter-spacing: 0.1em; gap: 0.25rem; }
 		.back-link :global(svg) { display: none; }
-		main { padding-top: 1.5rem; }
+		main { padding-top: 2.5rem; }
 		.product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.75rem 1rem; }
 	}
 </style>

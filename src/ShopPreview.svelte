@@ -4,6 +4,7 @@
 	import ProductCard from './ProductCard.svelte';
 	import { groupedProducts, refreshCatalog } from './lib/catalog';
 	import IconArrowRight from '~icons/carbon/arrow-right';
+	import './lib/styles/shop.css';
 
 	const featuredHandles = ['satb-t-shirt-mark-1-green-2', 'satb-trucker-hat-mark-1', 'satb-mug'];
 	const featured = $derived([
@@ -14,14 +15,14 @@
 	onMount(() => { void refreshCatalog().catch(() => {}); });
 </script>
 
-<section aria-label="Merch">
+<section id="merch" aria-label="Merch">
 	<ShopHeading label="Merch" />
 	{#if featured.length}
 		<div class="products">
 			{#each featured as product (product.id)}<ProductCard {product} />{/each}
 		</div>
 	{/if}
-	<a class="shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
+	<a class="shop-button shop-link" href="/shop">Shop all merch{#if $groupedProducts.length}{' '}({$groupedProducts.length}){/if}<IconArrowRight aria-hidden="true" /></a>
 </section>
 
 <style>
@@ -38,13 +39,18 @@
 		margin-top: 1.5rem;
 	}
 
+	/* Primary call to action, larger than the shop's own buttons */
 	.shop-link {
-		display: inline-flex;
-		align-items: center;
+		display: flex;
 		gap: 0.6rem;
-		min-height: 2.75rem;
-		margin-top: 1.25rem;
-		font-size: 0.9rem;
+		width: fit-content;
+		min-height: 3.25rem;
+		margin: 2rem auto 0;
+		padding-inline: 2rem;
+		font-size: 1.05rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 	}
 
 	@media (max-width: 500px) {
