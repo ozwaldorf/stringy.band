@@ -199,7 +199,7 @@
 	form > button { min-width: 11rem; min-height: 3.25rem; padding-inline: 2rem; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 	form > button[aria-disabled='true'] { cursor: default; }
 	.checkout-note { margin: 0.6rem 0 0; font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.6; }
-	@media (max-width: 620px) {
+	@media (max-width: 768px) {
 		.product-detail { grid-template-columns: 1fr; gap: 2rem; }
 		.gallery { max-width: 24rem; width: 100%; margin: auto; }
 		.details { max-width: 24rem; width: 100%; margin: 0.5rem auto 0; padding: 1.75rem 1.25rem 1.25rem; }
