@@ -128,7 +128,7 @@
 	let graded = $state.raw<{ from: HTMLImageElement; canvas: HTMLCanvasElement }>();
 	const gradedCache = new WeakMap<HTMLImageElement, HTMLCanvasElement>();
 	// The plain photo stands in until its graded copy is ready
-	const shown = $derived(grade && graded?.from === photo ? graded!.canvas : photo);
+	const shown = $derived(grade && graded && graded.from === photo ? graded.canvas : photo);
 	let bean = $state.raw<HTMLImageElement>();
 	// Each tint of the logo, drawn once; keyed by the tinted art so a retuned tint draws afresh
 	const logos = new Map<string, Promise<HTMLImageElement>>();
@@ -140,6 +140,9 @@
 		lines: []
 	});
 	let fontsReady = $state(false);
+	// Each visit opens on a random look, drawn once it is all ready
+	let ready = $state(false);
+	let opening = false;
 	let error = $state('');
 	const callouts: Partial<Record<Key, HTMLElement>> = $state({});
 
@@ -262,6 +265,12 @@
 	});
 
 	$effect(() => {
+		if (opening || (grade && !lut && !error)) return;
+		opening = true;
+		void untrack(randomize).finally(() => (ready = true));
+	});
+
+	$effect(() => {
 		if (!grade || lut) return;
 		loadLut(lutUrl).then(
 			(loaded) => (lut = loaded),
@@ -278,7 +287,7 @@
 
 	$effect(() => {
 		const ctx = canvas?.getContext('2d');
-		if (!ctx || !art || !fontsReady) return;
+		if (!ctx || !art || !fontsReady || !ready) return;
 		layout = drawFlier(
 			ctx,
 			$state.snapshot(fields),
@@ -365,6 +374,23 @@
 	const inside = (b: Box, x: number, y: number, pad = 10) =>
 		x >= b.x - pad && x <= b.x + b.w + pad && y >= b.y - pad && y <= b.y + b.h + pad;
 	let drag: { x: number; y: number; moved: boolean } | undefined;
+	// Fingers down on the canvas; two of them pinch the photo
+	const pointers = new Map<number, { x: number; y: number }>();
+	let pinch: { d: number; x: number; y: number } | undefined;
+
+	const spread = () => {
+		const [a, b] = [...pointers.values()];
+		return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+	};
+
+	// Moves the photo with the pointer, by screen pixels
+	function panBy(dx: number, dy: number) {
+		if (!photo || !layout) return;
+		const { w, h, scale } = photoCrop(photo, zoom, layout.photo.w, layout.photo.h);
+		const toPhoto = WIDTH / canvas!.getBoundingClientRect().width / scale;
+		if (photo.width > w) panX = clamp(panX - (dx * toPhoto) / (photo.width - w), 0, 1);
+		if (photo.height > h) panY = clamp(panY - (dy * toPhoto) / (photo.height - h), 0, 1);
+	}
 
 	function flierPoint(event: MouseEvent): [number, number] {
 		const rect = canvas!.getBoundingClientRect();
@@ -374,6 +400,14 @@
 	// Text edits in place, the QR code and the field open their settings, the photo drags
 	function pointerDown(event: PointerEvent) {
 		if (!layout) return;
+		pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		if (pointers.size === 2 && photo) {
+			pinch = spread();
+			drag = undefined;
+			canvas!.setPointerCapture(event.pointerId);
+			return;
+		}
+		if (pointers.size > 1) return;
 		const [x, y] = flierPoint(event);
 		// Drawn text wins over the empty slots that overlap it
 		const hits = (Object.keys(layout.text) as TextKey[]).filter((key) => inside(layout!.text[key]!, x, y));
@@ -393,17 +427,50 @@
 	}
 
 	function pointerMove(event: PointerEvent) {
+		if (!pointers.has(event.pointerId)) return;
+		pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		if (pinch && pointers.size === 2) {
+			const next = spread();
+			if (pinch.d > 0) zoom = clamp(zoom * (next.d / pinch.d), 1, 3);
+			panBy(next.x - pinch.x, next.y - pinch.y);
+			pinch = next;
+			return;
+		}
 		if (!drag || !photo) return;
 		if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 4) return;
-		const { w, h, scale } = photoCrop(photo, zoom, layout!.photo.w, layout!.photo.h);
-		const toPhoto = WIDTH / canvas!.getBoundingClientRect().width / scale;
-		if (photo.width > w) panX = clamp(panX - ((event.clientX - drag.x) * toPhoto) / (photo.width - w), 0, 1);
-		if (photo.height > h) panY = clamp(panY - ((event.clientY - drag.y) * toPhoto) / (photo.height - h), 0, 1);
+		panBy(event.clientX - drag.x, event.clientY - drag.y);
 		drag = { x: event.clientX, y: event.clientY, moved: true };
 	}
 
-	function pointerUp() {
+	// A tap that did not move opens the photo's settings
+	function pointerUp(event: PointerEvent) {
+		pointers.delete(event.pointerId);
+		if (pinch) {
+			if (pointers.size < 2) pinch = undefined;
+			return;
+		}
 		if (drag && !drag.moved) active = 'photo';
+		drag = undefined;
+	}
+
+	// A finger lifted anywhere: over an editor that opened under it, the canvas never hears
+	$effect(() => {
+		const lift = (event: PointerEvent) => {
+			pointers.delete(event.pointerId);
+			if (pointers.size < 2) pinch = undefined;
+		};
+		window.addEventListener('pointerup', lift);
+		window.addEventListener('pointercancel', lift);
+		return () => {
+			window.removeEventListener('pointerup', lift);
+			window.removeEventListener('pointercancel', lift);
+		};
+	});
+
+	// The browser took over, scrolling the page
+	function pointerCancel(event: PointerEvent) {
+		pointers.delete(event.pointerId);
+		if (pointers.size < 2) pinch = undefined;
 		drag = undefined;
 	}
 
@@ -486,7 +553,7 @@
 	{#if key === 'photo'}
 		<label>
 			Photo
-			<select bind:value={photoName}>
+			<select autocomplete="off" bind:value={photoName}>
 				{#if uploadUrl}<option value={UPLOAD}>Uploaded photo</option>{/if}
 				{#each photos as p (p.name)}
 					<option value={p.name}>{p.caption} ({p.name})</option>
@@ -497,7 +564,7 @@
 			<button class="shop-button secondary" type="button" onclick={pickRandom}>Random</button>
 			<label class="shop-button secondary upload">Upload<input type="file" accept="image/*" onchange={pickUpload} /></label>
 		</div>
-		<label class="check"><input type="checkbox" bind:checked={grade} /> Gruvbox colour grade</label>
+		<label class="check"><input type="checkbox" autocomplete="off" bind:checked={grade} /> Gruvbox colour grade</label>
 		{#if design === 'shapes' || design === 'bigdate'}
 			{#each [{ label: 'Portrait', round: false }, { label: 'Square', round: true }] as group (group.label)}
 				<div class="shape-group">
@@ -505,7 +572,7 @@
 					<div class="shapes" role="radiogroup" aria-label={`${group.label} shapes`}>
 						{#each SHAPES.filter((c) => !!c.round === group.round) as c (c.name)}
 							<label class="shape" title={c.label}>
-								<input type="radio" name="photo-shape" value={c.name} bind:group={shape} aria-label={c.label} />
+								<input type="radio" autocomplete="off" name="photo-shape" value={c.name} bind:group={shape} aria-label={c.label} />
 								<span>
 									<svg viewBox={c.round ? '0 0 24 24' : '0 0 24 30'} aria-hidden="true"><path d={SHAPE_ICONS[c.name]} /></svg>
 								</span>
@@ -514,17 +581,17 @@
 					</div>
 				</div>
 			{/each}
-			<label>Size <input type="range" min="0.6" max={SHAPE_MAX} step="0.01" bind:value={shapeScale} /></label>
+			<label>Size <input type="range" autocomplete="off" min="0.6" max={SHAPE_MAX} step="0.01" bind:value={shapeScale} /></label>
 		{/if}
 		{#if design === 'polaroid'}
-			<label>Height <input type="range" min="0.6" max="1" step="0.01" bind:value={printScale} /></label>
+			<label>Height <input type="range" autocomplete="off" min="0.6" max="1" step="0.01" bind:value={printScale} /></label>
 		{/if}
 		{#if design === 'classic'}
-			<label>Height <input type="range" min="420" max="1100" step="10" bind:value={photoHeight} /></label>
+			<label>Height <input type="range" autocomplete="off" min="420" max="1100" step="10" bind:value={photoHeight} /></label>
 		{/if}
-		<label>Zoom <input type="range" min="1" max="3" step="0.01" bind:value={zoom} /></label>
-		<label>Left to right <input type="range" min="0" max="1" step="0.01" bind:value={panX} /></label>
-		<label>Top to bottom <input type="range" min="0" max="1" step="0.01" bind:value={panY} /></label>
+		<label>Zoom <input type="range" autocomplete="off" min="1" max="3" step="0.01" bind:value={zoom} /></label>
+		<label>Left to right <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={panX} /></label>
+		<label>Top to bottom <input type="range" autocomplete="off" min="0" max="1" step="0.01" bind:value={panY} /></label>
 		{#if error}<p class="error" role="alert">{error}</p>{/if}
 	{:else if key === 'colour'}
 		{#each [{ label: 'Light', light: true }, { label: 'Dark', light: false }] as group (group.label)}
@@ -533,7 +600,7 @@
 				<div class="swatches" role="radiogroup" aria-label={`${group.label} colours`}>
 					{#each PALETTES.filter((p) => isLight(p) === group.light) as p (p.name)}
 						<label class="swatch" title={p.name} style={`--bg: ${p.bg}; --fg: ${p.accent}`}>
-							<input type="radio" name="palette" value={p.name} bind:group={paletteName} aria-label={p.name} />
+							<input type="radio" autocomplete="off" name="palette" value={p.name} bind:group={paletteName} aria-label={p.name} />
 							<span>Aa</span>
 						</label>
 					{/each}
@@ -555,7 +622,7 @@
 			<div class="tiles" role="radiogroup" aria-label="QR background">
 				{#each QR_TILES as t (t.name)}
 					<label class="tile">
-						<input type="radio" name="qr-tile" value={t.name} bind:group={qrTile} />
+						<input type="radio" autocomplete="off" name="qr-tile" value={t.name} bind:group={qrTile} />
 						<span>{t.name}</span>
 					</label>
 				{/each}
@@ -630,7 +697,7 @@
 				onpointerdown={pointerDown}
 				onpointermove={pointerMove}
 				onpointerup={pointerUp}
-				onpointercancel={() => (drag = undefined)}
+				onpointercancel={pointerCancel}
 				onwheel={wheelZoom}
 			></canvas>
 			{#if layout && (active === 'photo' || active === 'qr')}
@@ -703,7 +770,7 @@
 
 
 	<div class="toolbar">
-		<select class="show" bind:value={showId} onchange={pickShow} aria-label="Show">
+		<select autocomplete="off" class="show" bind:value={showId} onchange={pickShow} aria-label="Show">
 			{#each groups as group (group.label)}
 				<optgroup label={group.label}>
 					{#each group.shows as show (show.uid)}
@@ -715,7 +782,7 @@
 		<div class="layouts" role="radiogroup" aria-label="Layout">
 			{#each DESIGNS as d (d.name)}
 				<label class="layout" title={d.label}>
-					<input type="radio" name="layout" value={d.name} bind:group={design} aria-label={d.label} />
+					<input type="radio" autocomplete="off" name="layout" value={d.name} bind:group={design} aria-label={d.label} />
 					<span>{@render thumb(d.name)}</span>
 				</label>
 			{/each}
@@ -1044,7 +1111,9 @@
 		height: auto;
 		border-radius: 4px;
 		box-shadow: 0 6px 24px rgba(40, 40, 40, 0.2);
-		touch-action: none;
+		/* One finger scrolls the page up and down; sideways it drags the photo, two fingers pinch it */
+		touch-action: pan-y;
+		-webkit-tap-highlight-color: transparent;
 		cursor: pointer;
 	}
 
