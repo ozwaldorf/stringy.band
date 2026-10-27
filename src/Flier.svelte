@@ -84,6 +84,7 @@
 		diamond: 'M12 1l10 14-10 14L2 15z',
 		hexagon: 'M12 1l10 7v14l-10 7-10-7V8z',
 		circle: 'M12 2a10 10 0 1 0 0.01 0z',
+		square: 'M3 3h18v18H3z',
 		flower: polarIcon((t) => 0.9 + 0.1 * Math.cos(10 * t), 120),
 		burst: polarIcon((t) => (Math.round(((t + Math.PI / 2) / (Math.PI * 2)) * 32) % 2 ? 0.86 : 1), 32)
 	};
@@ -102,8 +103,7 @@
 	let uploadUrl = $state('');
 	let design = $state<Design>('classic');
 	let shape = $state<Shape>('arch');
-	// Shapes start at full size, and can grow a little past it
-	const SHAPE_MAX = 1.25;
+	// Shapes start at their largest
 	let shapeScale = $state(1);
 	let printScale = $state(1);
 	let photoHeight = $state(PHOTO_HEIGHT);
@@ -546,8 +546,8 @@
 	// photo down from the top edge; the rest grow about their middle.
 	const SIZERS: Partial<Record<Design, { get: () => number; set: (v: number) => void; min: number; max: number; fromTop?: boolean }>> = {
 		classic: { get: () => photoHeight, set: (v) => (photoHeight = v), min: 420, max: 1100, fromTop: true },
-		shapes: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.6, max: SHAPE_MAX },
-		bigdate: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.6, max: 1 },
+		shapes: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
+		bigdate: { get: () => shapeScale, set: (v) => (shapeScale = v), min: 0.5, max: 1 },
 		polaroid: { get: () => printScale, set: (v) => (printScale = v), min: 0.6, max: 1 }
 	};
 	const sizer = $derived(SIZERS[design]);
@@ -667,7 +667,7 @@
 					</div>
 				</div>
 			{/each}
-			<label>Size <input type="range" autocomplete="off" min="0.6" max={SHAPE_MAX} step="0.01" bind:value={shapeScale} /></label>
+			<label>Size <input type="range" autocomplete="off" min="0.5" max="1" step="0.01" bind:value={shapeScale} /></label>
 		{/if}
 		{#if design === 'polaroid'}
 			<label>Height <input type="range" autocomplete="off" min="0.6" max="1" step="0.01" bind:value={printScale} /></label>

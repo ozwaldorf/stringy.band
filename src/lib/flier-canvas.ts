@@ -42,7 +42,7 @@ export const DESIGNS: { name: Design; label: string }[] = [
 ];
 
 // Cut-outs for the photo in the shapes layout, each with the height it takes at full width
-export type Shape = 'arch' | 'circle' | 'oval' | 'rounded' | 'diamond' | 'hexagon' | 'flower' | 'burst';
+export type Shape = 'arch' | 'circle' | 'oval' | 'rounded' | 'diamond' | 'hexagon' | 'flower' | 'burst' | 'square';
 
 // `round` shapes keep a square box wherever they go
 export const SHAPES: { name: Shape; label: string; height: number; round?: boolean }[] = [
@@ -53,14 +53,18 @@ export const SHAPES: { name: Shape; label: string; height: number; round?: boole
 	{ name: 'hexagon', label: 'Hexagon', height: 660 },
 	{ name: 'circle', label: 'Circle', height: 600, round: true },
 	{ name: 'flower', label: 'Flower', height: 600, round: true },
-	{ name: 'burst', label: 'Burst', height: 600, round: true }
+	{ name: 'burst', label: 'Burst', height: 600, round: true },
+	{ name: 'square', label: 'Square', height: 600, round: true }
 ];
+
+// A shape at its largest is this much past its natural size
+const SHAPE_GROW = 1.25;
 
 export type FlierArt = {
 	photo?: CanvasImageSource & { width: number; height: number };
 	design: Design;
 	shape: Shape;
-	// The shape's size against its full width
+	// The shape's size, 1 its largest
 	shapeScale: number;
 	// The polaroid print's height against all the room it has
 	printScale: number;
@@ -325,6 +329,9 @@ function shapePath(ctx: CanvasRenderingContext2D, shape: Shape, box: Box) {
 			return corners(ctx, [[cx, y], [x + w, cy], [cx, y + h], [x, cy]]);
 		case 'hexagon':
 			return corners(ctx, [[cx, y], [x + w, y + h * 0.25], [x + w, y + h * 0.75], [cx, y + h], [x, y + h * 0.75], [x, y + h * 0.25]]);
+		case 'square':
+			ctx.beginPath();
+			return ctx.roundRect(x, y, w, h, w * 0.025);
 		case 'flower':
 			// Ten round petals
 			return polar(ctx, box, (t) => 0.9 + 0.1 * Math.cos(10 * t));
@@ -794,7 +801,8 @@ function bigdate(s: Scene): FlierLayout {
 	const slotBottom = Math.min(HEIGHT - PAD - 230 - 36, info.top - 50);
 	const slot = { x: 452, y: PAD, w: WIDTH - PAD - 452, h: slotBottom - PAD };
 	const shape = SHAPES.find((c) => c.name === art.shape) ?? SHAPES[0];
-	const scale = Math.min(1, art.shapeScale);
+	// Held to the slot; its largest size fills it
+	const scale = Math.min(1, art.shapeScale * SHAPE_GROW);
 	// Stretchable shapes fill the slot on the right. Round ones would be held to its width,
 	// so they take the whole lower left under the logo instead, and the date moves top right.
 	const d = Math.min(slotBottom - ROUND_TOP, WIDTH - PAD * 2) * scale;
@@ -928,8 +936,9 @@ function ticket(s: Scene): FlierLayout {
 function shapes(s: Scene): FlierLayout {
 	const { ctx, palette, fields, art } = s;
 	const shape = SHAPES.find((c) => c.name === art.shape) ?? SHAPES[0];
-	const w = 600 * art.shapeScale;
-	const photo = { x: (WIDTH - w) / 2, y: PAD, w, h: shape.height * art.shapeScale };
+	const size = art.shapeScale * SHAPE_GROW;
+	const w = 600 * size;
+	const photo = { x: (WIDTH - w) / 2, y: PAD, w, h: shape.height * size };
 	const clip = () => shapePath(ctx, shape.name, photo);
 
 	const cx = WIDTH / 2;
@@ -963,8 +972,8 @@ function shapes(s: Scene): FlierLayout {
 	const showTagline = !!fields.tagline.trim() || s.editing === 'tagline';
 	const baseline = where.top - 30;
 	// A smaller shape gets a smaller logo with more air under it
-	const small = Math.max(0, 1 - art.shapeScale);
-	const logoWidth = 640 * Math.min(1, 0.55 + 0.45 * art.shapeScale);
+	const small = Math.max(0, 1 - size);
+	const logoWidth = 640 * Math.min(1, 0.55 + 0.45 * size);
 	const gap = 70 + small * 120;
 	const limit = showTagline ? baseline - 44 - (gap - 40) : where.top - gap;
 	// Centred between the shape's foot and the text; a logo taller than the gap overlaps the shape, never the text
