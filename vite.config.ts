@@ -129,6 +129,7 @@ function spa404(): Plugin {
 			const routes = [
 				{ path: 'shop', title: 'Shop' },
 				{ path: 'shop/bag', title: 'Your bag' },
+				{ path: 'flier', title: 'Flier generator' },
 				...products.map((product) => {
 					const handle = encodeURIComponent(product.handle);
 					if (!handle || handle === '.' || handle === '..' || handle === 'bag') {

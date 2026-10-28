@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
 	import IconDownload from '~icons/carbon/download';
+	import IconInstall from '~icons/carbon/mobile-download';
 	import IconShare from '~icons/carbon/share';
 	import logoArt from './lib/assets/logo.svg?raw';
 	import beanArt from './lib/assets/bean-a.svg?raw';
@@ -782,11 +783,50 @@
 			if ((err as Error).name !== 'AbortError') fault = `Sharing failed: ${describe(err)}`;
 		}
 	}
+
+	// Phones can keep the generator as its own app; iOS has no prompt, so it gets the steps instead
+	type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+	const phone = matchMedia('(pointer: coarse)').matches;
+	const installed = matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && !!navigator.standalone);
+	const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+	let installPrompt = $state<InstallPrompt | null>(null);
+	let iosSteps = $state(false);
+	const canInstall = $derived(phone && !installed && (ios || !!installPrompt));
+
+	$effect(() => {
+		const onPrompt = (event: Event) => {
+			event.preventDefault();
+			installPrompt = event as InstallPrompt;
+		};
+		const onInstalled = () => (installPrompt = null);
+		window.addEventListener('beforeinstallprompt', onPrompt);
+		window.addEventListener('appinstalled', onInstalled);
+		return () => {
+			window.removeEventListener('beforeinstallprompt', onPrompt);
+			window.removeEventListener('appinstalled', onInstalled);
+		};
+	});
+
+	async function install() {
+		if (!installPrompt) {
+			iosSteps = !iosSteps;
+			return;
+		}
+		await installPrompt.prompt();
+		// A prompt can only be shown once
+		if ((await installPrompt.userChoice).outcome === 'accepted') installPrompt = null;
+	}
 </script>
 
 <svelte:head>
 	<title>Flier generator - Stringy and the Beans</title>
 	<meta name="robots" content="noindex" />
+	<link rel="manifest" href="/flier.webmanifest" />
+	<link rel="apple-touch-icon" href="/icons/flier-180.png" />
+	<meta name="apple-mobile-web-app-title" content="Fliers" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="theme-color" content="#282828" />
 </svelte:head>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (active = null)} onpointerdown={deselect} />
@@ -994,6 +1034,9 @@
 			<button class="icon-button primary" type="button" onclick={share} aria-label="Share" title="Share"><IconShare /></button>
 		{/if}
 		<button class="icon-button primary" type="button" onclick={download} aria-label="Download PNG" title="Download PNG"><IconDownload /></button>
+		{#if canInstall}
+			<button class="icon-button" type="button" onclick={install} aria-label="Install app" title="Install app" aria-expanded={ios ? iosSteps : undefined}><IconInstall /></button>
+		{/if}
 	</div>
 {/snippet}
 
@@ -1018,6 +1061,9 @@
 		{@render layoutPicker()}
 		{@render actionButtons()}
 	</div>
+	{#if iosSteps}
+		<p class="hint">To install, tap Share, then Add to Home Screen.</p>
+	{/if}
 
 	<div class="stage" class:narrow bind:this={stage} {@attach watchSize((w, h) => ([stageWidth, stageHeight] = [w, h]))}>
 		{#each narrow ? [] : ['left', 'right'] as side (side)}

@@ -1,0 +1,13 @@
+{
+	"id": "/flier/",
+	"name": "Stringy and the Beans flier generator",
+	"short_name": "Fliers",
+	"start_url": "/flier/",
+	"scope": "/flier",
+	"display": "standalone",
+	"background_color": "#282828",
+	"theme_color": "#282828",
+	"icons": [
+		{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+	]
+}
