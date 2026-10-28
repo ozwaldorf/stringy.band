@@ -10,7 +10,8 @@
 		grow,
 		delay = 0,
 		grown = $bindable(false),
-		duration = $bindable(0)
+		duration = $bindable(0),
+		skipped = $bindable(false)
 	}: {
 		length: number;
 		seed: number;
@@ -24,6 +25,8 @@
 		delay?: number;
 		grown?: boolean;
 		duration?: number;
+		/** Set when a link glide carried the page past it, so it appeared already grown */
+		skipped?: boolean;
 	} = $props();
 
 	// On its side the vine's own +x points down the screen, so beans hang toward 0 instead of 90
@@ -47,16 +50,40 @@
 		if (grow) grown = true;
 	});
 
+	// A link glide holds off growth until it lands: vines it carried past appear
+	// grown, the ones still in view grow then
 	$effect(() => {
-		if (!svg || grown || grow !== undefined) return;
+		if (!svg || grown) return;
+		const own = grow === undefined;
+		let gliding = document.documentElement.classList.contains('gliding');
+		let inView = false;
+		let crossed = false;
 		const observer = new IntersectionObserver(
 			([entry]) => {
-				if (entry.isIntersecting) grown = true;
+				inView = entry.isIntersecting;
+				if (!inView) return;
+				if (gliding) crossed = true;
+				else if (own) grown = true;
 			},
 			{ threshold: 0.15 }
 		);
+		const onGlideStart = () => {
+			gliding = true;
+			crossed = inView;
+		};
+		const onGlideEnd = () => {
+			gliding = false;
+			if (crossed && !inView) skipped = grown = true;
+			else if (inView && own) grown = true;
+		};
 		observer.observe(svg);
-		return () => observer.disconnect();
+		window.addEventListener('glidestart', onGlideStart);
+		window.addEventListener('glideend', onGlideEnd);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('glidestart', onGlideStart);
+			window.removeEventListener('glideend', onGlideEnd);
+		};
 	});
 
 	// When the growing tip reaches a leaf or bean, as a share of the whole growth
@@ -66,6 +93,7 @@
 <svg
 	class:roots
 	class:grown
+	class:skipped
 	style="--grow-for: {growFor}s; --grow-delay: {delay}s"
 	{width}
 	{height}
@@ -159,6 +187,11 @@
 
 	.grown .sprout {
 		transform: none;
+	}
+
+	.skipped .growth,
+	.skipped .sprout {
+		transition: none;
 	}
 
 	@media (prefers-reduced-motion: reduce) {

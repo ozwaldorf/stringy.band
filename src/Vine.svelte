@@ -7,7 +7,8 @@
 		grow,
 		delay = 0,
 		grown = $bindable(false),
-		duration = $bindable(0)
+		duration = $bindable(0),
+		skipped = $bindable(false)
 	}: {
 		seed: number;
 		roots?: boolean;
@@ -15,6 +16,7 @@
 		delay?: number;
 		grown?: boolean;
 		duration?: number;
+		skipped?: boolean;
 	} = $props();
 
 	// Drawn a little smaller than full size, then grown over the column's full height
@@ -26,7 +28,7 @@
 <div class="vine" bind:clientHeight={height} aria-hidden="true">
 	{#if height > 0}
 		<div class="scaled" style="--scale: {SCALE}">
-			<VineDrawing length={height / SCALE} {seed} {roots} {grow} {delay} bind:grown bind:duration />
+			<VineDrawing length={height / SCALE} {seed} {roots} {grow} {delay} bind:grown bind:duration bind:skipped />
 		</div>
 	{/if}
 </div>

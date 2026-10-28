@@ -24,6 +24,7 @@
 	// The past vine carries on growing where the upcoming one leaves off
 	let upcomingGrown = $state(false);
 	let upcomingGrowFor = $state(0);
+	let upcomingSkipped = $state(false);
 
 
 	const PAST_LIMIT = 5;
@@ -92,7 +93,7 @@
 		<p class="state">No upcoming shows</p>
 	{:else}
 		<div class="timeline">
-			<Vine seed={vineSeed} bind:grown={upcomingGrown} bind:duration={upcomingGrowFor} />
+			<Vine seed={vineSeed} bind:grown={upcomingGrown} bind:duration={upcomingGrowFor} bind:skipped={upcomingSkipped} />
 			<ul>
 				{#each upcoming as show (show.uid)}
 					<li id={show.anchor}>
@@ -147,7 +148,7 @@
 				seed={vineSeed + 1}
 				roots
 				grow={upcoming.length ? upcomingGrown : undefined}
-				delay={upcoming.length ? upcomingGrowFor : 0}
+				delay={upcoming.length && !upcomingSkipped ? upcomingGrowFor : 0}
 			/>
 			<ul>
 				{#each visiblePast as show (show.uid)}
