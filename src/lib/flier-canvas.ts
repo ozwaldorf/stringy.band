@@ -484,6 +484,29 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, font: string, maxWidt
 	return lines.length ? lines : [''];
 }
 
+// The venue, wrapped to `maxWidth`; a long one ends on its biggest line, the words before it
+// set smaller on up to two lines above
+const VENUE_LEAD = 0.62;
+function venueLines(s: Scene, size: number, maxWidth: number, maxLines: number, color: string, gap: number): Line[] {
+	const font = (n: number) => `800 ${n}px ${FONT}`;
+	const parts = wrap(s.ctx, s.fields.venue, font(size), maxWidth, maxLines);
+	// The last line shrinks to fit as stack would, and the lead follows it down
+	const last = parts[parts.length - 1].toUpperCase();
+	const floor = size * 0.6;
+	s.ctx.save();
+	while (size > floor && (s.ctx.font = font(size), s.ctx.measureText(last).width > maxWidth)) size -= 2;
+	s.ctx.restore();
+	const leadSize = Math.round(size * VENUE_LEAD);
+	// Returns typed into the name still break the smaller lines
+	const lead = parts.length > 1
+		? wrap(s.ctx, parts.slice(0, -1).join(s.fields.venue.trim().includes('\n') ? '\n' : ' '), font(leadSize), maxWidth, 2)
+		: [];
+	return [
+		...lead.map((part, i) => line(s, 'venue', part, { size: leadSize, weight: 800, color, gap: i ? Math.round(gap * VENUE_LEAD) : 0, upper: true })),
+		line(s, 'venue', parts[parts.length - 1], { size, weight: 800, color, gap: lead.length ? gap : 0, upper: true })
+	];
+}
+
 // Blank lines hold their place while the address is being typed
 function addressLines(s: Scene, spec: (i: number) => LineSpec): Line[] {
 	const address = s.fields.address.split('\n');
@@ -665,17 +688,15 @@ function logoHead(
 	let addressSize = baseAddress;
 	for (; venueSize > baseVenue; venueSize -= 2) {
 		addressSize = Math.max(baseAddress, Math.round(venueSize * addressRatio));
-		const count = wrap(ctx, fields.venue, `800 ${venueSize}px ${FONT}`, maxWidth, 4).length;
-		const tall = count * venueSize * 0.72 + (count - 1) * 12 + 20 + addressCount * addressSize * 0.72 + (addressCount - 1) * 14;
+		const venue = venueLines(s, venueSize, maxWidth, 4, accent, 12).reduce((sum, l) => sum + l.gap + l.size * 0.72, 0);
+		const tall = venue + 20 + addressCount * addressSize * 0.72 + (addressCount - 1) * 14;
 		if (tall <= height - 24) break;
 	}
 	if (venueSize <= baseVenue) [venueSize, addressSize] = [baseVenue, baseAddress];
 	venueSize = Math.round(venueSize * venueRatio);
 	const lines = [
 		// Long names wrap beside the logo rather than shrink
-		...wrap(ctx, fields.venue, `800 ${venueSize}px ${FONT}`, maxWidth, 4).map((part, i) =>
-			line(s, 'venue', part, { size: venueSize, weight: 800, color: accent, gap: i ? 12 : 0, upper: true })
-		),
+		...venueLines(s, venueSize, maxWidth, 4, accent, 12),
 		...addressLines(s, (i) => ({ size: addressSize, weight: 500, color: ink, gap: i ? 14 : 20 }))
 	];
 	// Hung from the top of the logo; stack sets lines from their foot, so find it from their caps
@@ -903,9 +924,7 @@ function bigdate(s: Scene, square: boolean): FlierLayout {
 	const shape = allowed.find((c) => c.name === art.shape) ?? allowed[0];
 	// The venue may wrap, in the column the corner QR code leaves it
 	const detailsFor = (width: number) => [
-		...wrap(ctx, fields.venue, `800 54px ${FONT}`, width, 2).map((part, i) =>
-			line(s, 'venue', part, { size: 54, weight: 800, color: palette.accent, gap: i ? 10 : 0, upper: true })
-		),
+		...venueLines(s, 54, width, 2, palette.accent, 10),
 		...addressLines(s, (i) => ({ size: 30, weight: 500, color: palette.text, gap: i ? 14 : 22 })),
 		line(s, 'entry', fields.entry, { size: 44, weight: 800, color: palette.accent, gap: 30, upper: true })
 	];
@@ -1254,9 +1273,7 @@ function strip(s: Scene): FlierLayout {
 	const linesAt = (grow: number) => {
 		const size = (n: number) => Math.round(n * grow);
 		return [
-			...wrap(ctx, fields.venue, `800 ${size(54)}px ${FONT}`, width, 3).map((part, i) =>
-				line(s, 'venue', part, { size: size(54), weight: 800, color: palette.accent, gap: i ? size(10) : 0, upper: true })
-			),
+			...venueLines(s, size(54), width, 3, palette.accent, size(10)),
 			...addressLines(s, (i) => ({ size: size(30), weight: 500, color: palette.text, gap: size(i ? 14 : 22) })),
 			...wrap(ctx, fields.date, `800 ${size(44)}px ${FONT}`, width, 2).map((part, i) =>
 				line(s, 'date', part, { size: size(44), weight: 800, color: palette.text, gap: size(i ? 10 : 34), upper: true })
@@ -1321,9 +1338,7 @@ function shapes(s: Scene): FlierLayout {
 		s,
 		[
 			// Wraps rather than shrinks in the column the QR code leaves
-			...wrap(ctx, fields.venue, `800 54px ${FONT}`, maxWidth, 2).map((part, i) =>
-				line(s, 'venue', part, { size: 54, weight: 800, color: palette.accent, gap: i ? 10 : 0, upper: true })
-			),
+			...venueLines(s, 54, maxWidth, 2, palette.accent, 10),
 			line(s, 'address', address, { size: 30, weight: 500, color: palette.text, gap: 16 })
 		],
 		{ x: tx, bottom: when.top - 30, align: 'center', maxWidth }
@@ -1447,12 +1462,10 @@ function multishape(s: Scene): FlierLayout {
 			line(s, 'time', fields.time, { size: size(44), weight: 800, color: palette.accent, gap: size(16), upper: true })
 		];
 	};
-	const whereAt = (grow: number) => {
+	const whereAt = (grow: number, width = footWidth) => {
 		const size = (n: number) => Math.round(n * grow);
 		return [
-			...wrap(ctx, fields.venue, `800 ${size(54)}px ${FONT}`, footWidth, 3).map((part, i) =>
-				line(s, 'venue', part, { size: size(54), weight: 800, color: palette.accent, gap: i ? size(10) : 0, upper: true })
-			),
+			...venueLines(s, size(54), width, 3, palette.accent, size(10)),
 			...addressLines(s, (i) => ({ size: size(30), weight: 500, color: palette.text, gap: size(i ? 14 : 22) })),
 			line(s, 'entry', fields.entry, { size: size(44), weight: 800, color: palette.accent, gap: size(24), upper: true })
 		];
@@ -1496,22 +1509,29 @@ function multishape(s: Scene): FlierLayout {
 		return { lines: at(grow), grow };
 	};
 
-	// Top right: the logo, the date and time right aligned under it, the tagline under them
+	// Top right: the logo, then the date and time right aligned with the tagline under them,
+	// centred in the room between the logo and the shape below
 	const right = WIDTH - PAD;
 	drawLogo(s, logoWidth, right - topWidth / 2, PAD);
-	const top = grown(whenAt, topWidth, frames[1].y - 16 - 48 - taglineRoom - (logoBottom + 40));
-	const whenBottom = logoBottom + 40 + tall(top.lines, topWidth);
+	const [roomTop, roomBottom] = [logoBottom + 40, frames[1].y - 16 - 48];
+	const top = grown(whenAt, topWidth, roomBottom - roomTop - taglineRoom);
+	const whenTall = tall(top.lines, topWidth);
+	const whenBottom = roomTop + Math.max(0, (roomBottom - roomTop - whenTall - taglineRoom) / 2) + whenTall;
 	const when = stack(s, top.lines, { x: right, bottom: whenBottom, align: 'right', maxWidth: topWidth });
 	if (when.text.date) when.text.date.wrap = true;
 	const tagline = drawTagline(s, right, whenBottom + 70, palette.accent, {
 		maxWidth: topWidth, size: Math.round(32 * Math.min(top.grow, 1.3)), down: true
 	});
 
-	// Bottom left: the venue, address and entry, set down on the QR code
-	const foot = grown(whereAt, footWidth, footBottom - (frames[0].y + a.h + 16 + 48));
-	const where = stack(s, foot.lines, { x: PAD, bottom: footBottom, align: 'left', maxWidth: footWidth });
+	// Bottom left: the venue, address and entry, set down on the QR code, as wide as the shape beside allows
+	const whereWidth = Math.max(footWidth, frames[1].x - 16 - 48 - PAD);
+	const footRoom = footBottom - (frames[0].y + a.h + 16 + 48);
+	const foot = grown((grow) => whereAt(grow, whereWidth), whereWidth, footRoom);
+	// Height the text leaves once at its largest goes to the QR code, lifting the text with it
+	const qrGrown = s.link ? Math.min(qrSize + Math.max(0, footRoom - tall(foot.lines, whereWidth)), whereWidth, 380) : qrSize;
+	const where = stack(s, foot.lines, { x: PAD, bottom: footBottom - (qrGrown - qrSize), align: 'left', maxWidth: whereWidth });
 	if (where.text.venue) where.text.venue.wrap = true;
-	const qr = drawQr(s, PAD + qrSize / 2, HEIGHT - PAD - qrSize / 2, qrSize, palette.bg);
+	const qr = drawQr(s, PAD + qrGrown / 2, HEIGHT - PAD - qrGrown / 2, qrGrown, palette.bg);
 	return {
 		photo: frames[0],
 		frames,
