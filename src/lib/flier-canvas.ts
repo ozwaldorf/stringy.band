@@ -91,7 +91,8 @@ export type FlierArt = Frame & {
 	printScale: number;
 	// How far down the flier the photo reaches in the classic layout
 	height: number;
-	logo: HTMLImageElement;
+	// Largest first, each half the one before
+	logo: HTMLImageElement[];
 	bean: HTMLImageElement;
 	// The logo's little bean
 	littleBean: HTMLImageElement;
@@ -371,7 +372,7 @@ function shapePath(ctx: CanvasRenderingContext2D, shape: Shape, box: Box) {
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-const logoHeight = ({ art }: Scene, width: number) => (width * art.logo.naturalHeight) / art.logo.naturalWidth;
+const logoHeight = ({ art }: Scene, width: number) => (width * art.logo[0].naturalHeight) / art.logo[0].naturalWidth;
 
 // Returns the logo's visual bottom edge
 function drawLogo(s: Scene, width: number, cx: number, y: number): number {
@@ -381,7 +382,9 @@ function drawLogo(s: Scene, width: number, cx: number, y: number): number {
 	ctx.shadowColor = palette.shadow;
 	ctx.shadowBlur = 28 * (width / LOGO_WIDTH);
 	ctx.shadowOffsetY = 10 * (width / LOGO_WIDTH);
-	ctx.drawImage(art.logo, cx - width / 2 + width * LOGO_NUDGE, y, width, h);
+	// The smallest size still at least as wide as drawn
+	const img = art.logo.findLast((size) => size.naturalWidth >= width) ?? art.logo[0];
+	ctx.drawImage(img, cx - width / 2 + width * LOGO_NUDGE, y, width, h);
 	ctx.restore();
 	return y + h * LOGO_VISUAL;
 }
@@ -1512,11 +1515,22 @@ function multishape(s: Scene): FlierLayout {
 	// Top right: the logo, then the date and time right aligned with the tagline under them,
 	// centred in the room between the logo and the shape below
 	const right = WIDTH - PAD;
-	drawLogo(s, logoWidth, right - topWidth / 2, PAD);
-	const [roomTop, roomBottom] = [logoBottom + 40, frames[1].y - 16 - 48];
-	const top = grown(whenAt, topWidth, roomBottom - roomTop - taglineRoom);
-	const whenTall = tall(top.lines, topWidth);
-	const whenBottom = roomTop + Math.max(0, (roomBottom - roomTop - whenTall - taglineRoom) / 2) + whenTall;
+	const roomBottom = frames[1].y - 16 - 48;
+	const setTop = (width: number) => {
+		const bottom = PAD + logoHeight(s, width) * LOGO_VISUAL;
+		const roomTop = bottom + 40;
+		const top = grown(whenAt, topWidth, roomBottom - roomTop - taglineRoom);
+		const whenTall = tall(top.lines, topWidth);
+		const whenBottom = roomTop + Math.max(0, (roomBottom - roomTop - whenTall - taglineRoom) / 2) + whenTall;
+		// Room to the shape on its left, and down to the date
+		const gaps = [right - width + width * LOGO_NUDGE - (frames[0].x + a.w + 16), whenBottom - whenTall - bottom];
+		return { width, top, whenBottom, gaps, fits: whenTall + taglineRoom <= roomBottom - roomTop };
+	};
+	// The logo widens toward the shape beside it until that gap is no more than the one below it
+	let set = setTop(logoWidth);
+	for (let next = setTop(logoWidth + 4); next.fits && next.gaps[0] >= next.gaps[1]; next = setTop(next.width + 4)) set = next;
+	const { top, whenBottom } = set;
+	drawLogo(s, set.width, right - set.width / 2, PAD);
 	const when = stack(s, top.lines, { x: right, bottom: whenBottom, align: 'right', maxWidth: topWidth });
 	if (when.text.date) when.text.date.wrap = true;
 	const tagline = drawTagline(s, right, whenBottom + 70, palette.accent, {

@@ -90,8 +90,10 @@
 	// Framed afresh from its top, where the faces usually are
 	const framed = (name: string): Shot => ({ name, zoom: 1, panX: 0.5, panY: 0 });
 	const imageSrc = (name: string) => (name.startsWith('blob:') ? name : `/images/${name}.webp`);
-	// Rasterised at twice the drawn width so the logo stays crisp at full size
-	const LOGO_PIXELS = 1840;
+	// Rasterised at twice the drawn width for full size, and at halves below it: browsers that
+	// draw the SVG from its raster shrink it roughly, so the nearest size is never more than halved
+	const LOGO_PIXELS = [1840, 920, 460, 230];
+	const logoSizes = (svg: string) => Promise.all(LOGO_PIXELS.map((px) => svgImage(svg, px)));
 	const CALLOUT_GAP = 8;
 	const polarIcon = (r: (t: number) => number, steps: number) =>
 		Array.from({ length: steps }, (_, i) => {
@@ -161,8 +163,8 @@
 	let bean = $state.raw<HTMLImageElement>();
 	let littleBean = $state.raw<HTMLImageElement>();
 	// Each tint of the logo, drawn once; keyed by the tinted art so a retuned tint draws afresh
-	const logos = new Map<string, Promise<HTMLImageElement>>();
-	let logo = $state.raw<{ tint: LogoTint; img: HTMLImageElement }>();
+	const logos = new Map<string, Promise<HTMLImageElement[]>>();
+	let logo = $state.raw<{ tint: LogoTint; img: HTMLImageElement[] }>();
 	const art = $derived(bean && littleBean && logo ? { bean, littleBean, logo: logo.img } : undefined);
 	let layout = $state.raw<FlierLayout>();
 	let placed = $state.raw<{ tops: Partial<Record<Key, number>>; lines: { key: Key; points: string; x: number; y: number; empty: boolean }[] }>({
@@ -327,7 +329,7 @@
 		// Every tint drawn up front, so a new colour never waits on its logo
 		for (const p of PALETTES) {
 			const svg = tintLogo(logoArt, p.logo);
-			if (!logos.has(svg)) logos.set(svg, svgImage(svg, LOGO_PIXELS));
+			if (!logos.has(svg)) logos.set(svg, logoSizes(svg));
 		}
 		void Promise.all(FONTS.map((font) => document.fonts.load(font))).finally(() => (fontsReady = true));
 	});
@@ -354,7 +356,7 @@
 	$effect(() => {
 		const tint = palette.logo;
 		const svg = tintLogo(logoArt, tint);
-		if (!logos.has(svg)) logos.set(svg, svgImage(svg, LOGO_PIXELS));
+		if (!logos.has(svg)) logos.set(svg, logoSizes(svg));
 		let current = true;
 		void logos.get(svg)!.then((img) => current && (logo = { tint, img }));
 		return () => (current = false);
