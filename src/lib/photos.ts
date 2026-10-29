@@ -17,6 +17,7 @@ export const landscapePhotos: Photo[] = [
 	{ name: 'band/IMG_3017', caption: 'The Beans' },
 	{ name: 'band/IMG_3502', caption: "El Dorado Bar, May 14 '26" },
 	{ name: 'band/IMG_3504', caption: "El Dorado Bar, May 14 '26" },
+	{ name: 'band/IMG_3505', caption: "Lake, Phoenix & Syd @ El Dorado Bar, May 14 '26" },
 	{ name: 'band/IMG_3507', caption: "El Dorado Bar, May 14 '26" },
 	{ name: 'band/IMG_3626', caption: "The Beans @ Quarters, May 30 '26" },
 	{ name: 'band/IMG_6831', caption: 'The Beans' },
@@ -27,14 +28,18 @@ export const landscapePhotos: Photo[] = [
 	{ name: 'band/IMG_8098', caption: "The Beans @ Lazy Bear, Jul 11 '26" },
 	{ name: 'band/IMG_8105', caption: "The Beans @ Lazy Bear, Jul 11 '26" },
 	{ name: 'band/IMG_8159', caption: "The Beans @ Lazy Bear, Jul 11 '26" },
+	{ name: 'band/IMG_8546', caption: "The Beans @ Lazy Bear, Jul 11 '26" },
 	{ name: 'oz/1793065966863_0', caption: 'Ossian' },
-	{ name: 'phoenix/IMG_3503', caption: "El Dorado Bar, May 14 '26" },
-	{ name: 'phoenix/IMG_3505', caption: "El Dorado Bar, May 14 '26" }
+	{ name: 'phoenix/IMG_3503', caption: "El Dorado Bar, May 14 '26" }
 ];
 
 export const portraitPhotos: Photo[] = [
+	{ name: 'band/1793066082016_0', caption: "Syd & Ossian @ Lazy Bear, Jul 11 '26" },
+	{ name: 'band/IMG_0749', caption: "Syd & Phoenix @ Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'band/IMG_0942', caption: "Reef Cannabis Co, Sep 13 '26" },
+	{ name: 'band/IMG_0976', caption: "Phoenix & Syd @ Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'band/IMG_6439', caption: 'The Beans' },
+	{ name: 'band/IMG_8913', caption: "Ossian & Lake @ Lazy Bear, Jul 11 '26" },
 	{ name: 'clara/1793066155680_0', caption: "Clara @ Lazy Bear, Jul 11 '26" },
 	{ name: 'clara/1793066375801_0', caption: "Clara @ Lazy Bear, Jul 11 '26" },
 	{ name: 'clara/1793066582060_0', caption: "Cambridge Depot, Oct 17 '26" },
@@ -48,8 +53,9 @@ export const portraitPhotos: Photo[] = [
 	{ name: 'oz/1793066199854_0', caption: "Ossian @ Lazy Bear, Jul 11 '26" },
 	{ name: 'oz/IMG_0746', caption: "Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'oz/IMG_3508', caption: "El Dorado Bar, May 14 '26" },
+	{ name: 'oz/IMG_8596', caption: "Ossian @ Lazy Bear, Jul 11 '26" },
+	{ name: 'oz/IMG_8980', caption: "Ossian @ Lazy Bear, Jul 11 '26" },
 	{ name: 'phoenix/IMG_0680', caption: "Reef Cannabis Co, Sep 13 '26" },
-	{ name: 'phoenix/IMG_0976', caption: "Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'phoenix/IMG_2179', caption: "The Daily Gazette, Sep 23 '26" },
 	{ name: 'phoenix/IMG_3509', caption: "El Dorado Bar, May 14 '26" },
 	{ name: 'phoenix/IMG_6285', caption: 'Phoenix' },
@@ -61,11 +67,9 @@ export const portraitPhotos: Photo[] = [
 	{ name: 'syd/9094', caption: "Syd @ Lazy Bear, Jul 11 '26" },
 	{ name: 'syd/1793065845747_0', caption: 'Syd' },
 	{ name: 'syd/1793065910806_0', caption: 'Syd' },
-	{ name: 'syd/1793066082016_0', caption: "Syd @ Lazy Bear, Jul 11 '26" },
 	{ name: 'syd/1793066113674_0', caption: "Syd @ Lazy Bear, Jul 11 '26" },
 	{ name: 'syd/1793066131443_0', caption: "Syd @ Lazy Bear, Jul 11 '26" },
 	{ name: 'syd/1793066231127_0', caption: "Syd @ Lazy Bear, Jul 11 '26" },
-	{ name: 'syd/IMG_0749', caption: "Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'syd/IMG_0874', caption: "Reef Cannabis Co, Sep 13 '26" },
 	{ name: 'syd/IMG_6166', caption: 'Syd' }
 ];
