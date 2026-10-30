@@ -769,9 +769,10 @@ function drawQr(s: Scene, cx: number, cy: number, size: number, behind: string, 
 	}
 
 	const middle = clear * cell;
-	const bh = middle * 0.9;
-	const bw = (bh * art.bean.naturalWidth) / art.bean.naturalHeight;
-	ctx.drawImage(art.bean, left + clearFrom * cell + (middle - bw) / 2, top + clearFrom * cell + (middle - bh) / 2, bw, bh);
+	const bean = s.qr.bean === 'b' ? art.littleBean : art.bean;
+	const fit = (middle * 0.9) / Math.max(bean.naturalWidth, bean.naturalHeight);
+	const [bw, bh] = [bean.naturalWidth * fit, bean.naturalHeight * fit];
+	ctx.drawImage(bean, left + clearFrom * cell + (middle - bw) / 2, top + clearFrom * cell + (middle - bh) / 2, bw, bh);
 	ctx.restore();
 	return box;
 }
@@ -899,7 +900,7 @@ function polaroid(s: Scene): FlierLayout {
 	// entry below, and kept inside the margin when the print runs wide
 	const qrSize = 270;
 	const qrX = Math.min(card.w / 2 + 10, WIDTH - PAD - qrSize / 2 - cx);
-	const qr = drawQr({ ...s, qr: { tile: QR_TILES[0].bg } }, ...turn(cx, cy, angle, qrX, card.h / 2 - 40), qrSize, PRINT, 0.1);
+	const qr = drawQr({ ...s, qr: { ...s.qr, tile: QR_TILES[0].bg } }, ...turn(cx, cy, angle, qrX, card.h / 2 - 40), qrSize, PRINT, 0.1);
 	// The tagline written in the margin, ending short of the sticker
 	const end = Math.min(card.w / 2 - 180, qrX - qrSize / 2 - 20);
 	const [right, baseline] = turn(cx, cy, angle, end, card.h / 2 - 42);

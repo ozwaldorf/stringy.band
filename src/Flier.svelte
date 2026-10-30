@@ -9,7 +9,7 @@
 	import lutUrl from './lib/assets/gruvbox-dark-hard-hald-12.png';
 	import data from './lib/shows.json';
 	import type { Show } from './lib/bandsintown';
-	import { flierFields, flierFilename, isLight, palettesFor, PALETTES, qrTags, tintLogo, type LogoTint, QR_TILES, type FlierFields } from './lib/flier';
+	import { flierFields, flierFilename, isLight, palettesFor, PALETTES, qrTags, tintLogo, type LogoTint, QR_TILES, type FlierFields, type QrBean } from './lib/flier';
 	import {
 		applyLut,
 		DESIGNS,
@@ -121,6 +121,7 @@
 	);
 	let paletteName = $state('Teal');
 	let qrTile = $state(QR_TILES[0].name);
+	let qrBean = $state<QrBean>('a');
 	let design = $state<Design>('classic');
 	// The first is the photo every layout shows; the strip shows as many as it has frames
 	let shots = $state<Shot[]>([framed(photos[0].name), ...castShots(STRIP_MAX - 1).map(framed)]);
@@ -273,6 +274,7 @@
 		shapeScale = 1;
 		secondShapeScale = 1;
 		qrTile = pick(QR_TILES.filter((t) => t.bg)).name;
+		qrBean = pick<QrBean>(['a', 'b']);
 		paletteName = pick(ranked.slice(0, 3)).name;
 		shots = [framed(next.name), ...cast.map(framed)];
 		stripCount = 3;
@@ -390,7 +392,7 @@
 				ctx,
 				$state.snapshot(fields),
 				palette,
-				{ tile: tileBg },
+				{ tile: tileBg, bean: qrBean },
 				{
 					...art,
 					design,
@@ -950,6 +952,16 @@
 				{/each}
 			</div>
 			{#if qrTile === 'None'}<p class="hint">Check it scans on the bare field before printing.</p>{/if}
+		{/if}
+		{#if fields.link.trim()}
+			<div class="tiles" role="radiogroup" aria-label="Bean in the QR code">
+				{#each [{ name: 'a', label: 'Tall bean', art: beanArt }, { name: 'b', label: 'Little bean', art: littleBeanArt }] as b (b.name)}
+					<label class="tile bean" title={b.label}>
+						<input type="radio" autocomplete="off" name="qr-bean" value={b.name} bind:group={qrBean} aria-label={b.label} />
+						<span>{@html b.art}</span>
+					</label>
+				{/each}
+			</div>
 		{/if}
 	{/if}
 {/snippet}
@@ -1797,6 +1809,19 @@
 		color: var(--color-text);
 		font-size: 0.8rem;
 		font-weight: 500;
+	}
+
+	.tile.bean span {
+		display: grid;
+		place-items: center;
+		width: 2.4rem;
+		height: 2rem;
+		padding: 0.2rem;
+	}
+
+	.tile.bean :global(svg) {
+		width: 100%;
+		height: 100%;
 	}
 
 	.tile input:checked + span {

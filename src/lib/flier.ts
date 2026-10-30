@@ -140,7 +140,9 @@ export function palettesFor(tone: [number, number, number]): Palette[] {
 	return [...PALETTES].sort((a, b) => score(a) - score(b));
 }
 
-export type QrStyle = { tile: string | null };
+// The bean in the middle: the tall one, or the logo's little one
+export type QrBean = 'a' | 'b';
+export type QrStyle = { tile: string | null; bean: QrBean };
 
 function zoned(options: Intl.DateTimeFormatOptions) {
 	return new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, ...options });
